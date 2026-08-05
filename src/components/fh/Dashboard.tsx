@@ -29,7 +29,6 @@ import { formatCents, formatDate, MONTHS, monthKey } from "@/lib/money";
 import { globalTotals, scopeTotals, useStore } from "@/lib/store";
 import { annualReportPdf, monthlyReportPdf } from "@/lib/pdf";
 import type { Entry, Scope } from "@/lib/types";
-import logo from "@/assets/logo.jpg.asset.json";
 import {
   CategoriesDialog,
   DetailDialog,
@@ -41,6 +40,7 @@ import {
   ReserveDepositDialog,
   ReserveWithdrawDialog,
 } from "./dialogs";
+import { DonutChart } from "./DonutChart";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -337,7 +337,7 @@ export function Dashboard() {
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <img
-            src={logo.url}
+            src="/favicon.png"
             alt="Brasão da Família Heinz"
             className="size-11 shrink-0 rounded-2xl object-cover ring-1 ring-primary/30"
           />
@@ -443,6 +443,14 @@ export function Dashboard() {
           <ChevronRight className="size-5" />
         </button>
       </div>
+
+      {/* Gráfico donut */}
+      <DonutChart
+        entries={entries}
+        categories={categories}
+        month={month}
+        scopeFilter={scopeFilter}
+      />
 
       <div className="mt-5 grid gap-4">
         <ScopePanel scope="empresa" />
