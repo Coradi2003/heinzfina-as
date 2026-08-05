@@ -110,9 +110,7 @@ function Indicator({
 }) {
   return (
     <div className="rounded-2xl bg-secondary/50 px-3 py-3">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
       <p
         className={cn(
           "mt-1 font-display text-base font-semibold tabular-nums",
@@ -173,19 +171,11 @@ export function Dashboard() {
   const [confirmPay, setConfirmPay] = useState<Entry[] | null>(null);
 
   const totals = useMemo(() => globalTotals(entries), [entries]);
-  const empresa = useMemo(
-    () => scopeTotals(entries, "empresa", month),
-    [entries, month],
-  );
-  const pessoal = useMemo(
-    () => scopeTotals(entries, "pessoal", month),
-    [entries, month],
-  );
+  const empresa = useMemo(() => scopeTotals(entries, "empresa", month), [entries, month]);
+  const pessoal = useMemo(() => scopeTotals(entries, "pessoal", month), [entries, month]);
 
-  const catName = (id: string) =>
-    categories.find((c) => c.id === id)?.name ?? "Sem categoria";
-  const catColor = (id: string) =>
-    categories.find((c) => c.id === id)?.color ?? "#34d399";
+  const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
+  const catColor = (id: string) => categories.find((c) => c.id === id)?.color ?? "#34d399";
 
   const groups = useMemo(() => {
     const filtered = entries.filter((e) => {
@@ -236,11 +226,7 @@ export function Dashboard() {
           pending,
           nextDue,
           parcelSum,
-          totalLabel: hasInstallment
-            ? formatCents(totalValue)
-            : hasFixed
-              ? "Fixa"
-              : "—",
+          totalLabel: hasInstallment ? formatCents(totalValue) : hasFixed ? "Fixa" : "—",
         };
       })
       .sort((a, b) => a.nextDue.localeCompare(b.nextDue));
@@ -252,9 +238,7 @@ export function Dashboard() {
   const shiftMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(Date.UTC(y ?? 2026, (m ?? 1) - 1 + delta, 1));
-    setMonth(
-      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`,
-    );
+    setMonth(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
   };
 
   const openScopeDialog = (name: string, scope: Scope) => {
@@ -304,7 +288,7 @@ export function Dashboard() {
         </header>
 
         <div className="mt-4 grid grid-cols-3 gap-2">
-          <Indicator label="Dívida mensal" value={formatCents(t.total)} />
+          <Indicator label="Dívida mensal" value={formatCents(t.total)} tone="negative" />
           <Indicator label="Total pago" value={formatCents(t.paid)} tone="positive" />
           <Indicator
             label="A pagar"
@@ -314,14 +298,11 @@ export function Dashboard() {
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button
-            className="h-11 rounded-2xl"
-            onClick={() => openScopeDialog("income", scope)}
-          >
+          <Button className="h-11 rounded-2xl" onClick={() => openScopeDialog("income", scope)}>
             <ArrowUpRight className="size-4" /> Renda
           </Button>
           <Button
-            variant="secondary"
+            variant="destructive"
             className="h-11 rounded-2xl"
             onClick={() => openScopeDialog("expense", scope)}
           >
@@ -372,16 +353,10 @@ export function Dashboard() {
         >
           <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
             <span>
-              Entradas{" "}
-              <b className="text-primary tabular-nums">
-                {formatCents(totals.income)}
-              </b>
+              Entradas <b className="text-primary tabular-nums">{formatCents(totals.income)}</b>
             </span>
             <span>
-              Saídas{" "}
-              <b className="text-destructive tabular-nums">
-                {formatCents(totals.outcome)}
-              </b>
+              Saídas <b className="text-destructive tabular-nums">{formatCents(totals.outcome)}</b>
             </span>
           </div>
         </Bubble>
@@ -530,18 +505,18 @@ export function Dashboard() {
                       {catName(g.categoryId)}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {g.scope === "empresa" ? "Empresa" : "Pessoal"} •{" "}
-                      {g.entries.length} lanç. • venc. {formatDate(g.nextDue)}
+                      {g.scope === "empresa" ? "Empresa" : "Pessoal"} • {g.entries.length} lanç. •
+                      venc. {formatDate(g.nextDue)}
                     </span>
                   </span>
                 </span>
                 <span className="hidden text-sm text-muted-foreground sm:block">
                   {formatDate(g.nextDue)}
                 </span>
-                <span className="text-right font-display text-sm font-semibold tabular-nums">
+                <span className="text-right font-display text-sm font-semibold tabular-nums text-destructive">
                   {formatCents(g.parcelSum)}
                 </span>
-                <span className="hidden text-right text-sm text-muted-foreground tabular-nums sm:block">
+                <span className="hidden text-right text-sm text-destructive/70 tabular-nums sm:block">
                   {g.totalLabel}
                 </span>
               </button>
@@ -660,20 +635,13 @@ export function Dashboard() {
           setDialog("edit");
         }}
       />
-      <AlertDialog
-        open={Boolean(confirmPay)}
-        onOpenChange={(v) => !v && setConfirmPay(null)}
-      >
+      <AlertDialog open={Boolean(confirmPay)} onOpenChange={(v) => !v && setConfirmPay(null)}>
         <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar pagamento total?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmPay?.length} lançamento(s) serão marcados como pagos, no
-              total de{" "}
-              {formatCents(
-                (confirmPay ?? []).reduce((a, e) => a + (e.amount - e.paid), 0),
-              )}
-              .
+              {confirmPay?.length} lançamento(s) serão marcados como pagos, no total de{" "}
+              {formatCents((confirmPay ?? []).reduce((a, e) => a + (e.amount - e.paid), 0))}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

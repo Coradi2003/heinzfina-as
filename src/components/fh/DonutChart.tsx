@@ -85,7 +85,7 @@ export function DonutChart({
             className={cn(
               "flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-medium transition-all duration-200",
               isExpense
-                ? "bg-primary/15 text-primary glow"
+                ? "bg-destructive/15 text-destructive"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -97,7 +97,7 @@ export function DonutChart({
             className={cn(
               "flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-medium transition-all duration-200",
               !isExpense
-                ? "bg-primary/15 text-primary glow"
+                ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -148,7 +148,14 @@ export function DonutChart({
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-              <p className="font-display text-2xl font-bold tabular-nums">{formatCents(total)}</p>
+              <p
+                className={cn(
+                  "font-display text-2xl font-bold tabular-nums",
+                  isExpense ? "text-destructive" : "text-primary",
+                )}
+              >
+                {formatCents(total)}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {isExpense ? "Total de despesas" : "Total de receitas"}
               </p>
@@ -156,7 +163,7 @@ export function DonutChart({
           </div>
 
           {selectedSlice && (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3">
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
               <span
                 className="size-3 shrink-0 rounded-full"
                 style={{ backgroundColor: selectedSlice.color }}
@@ -164,10 +171,22 @@ export function DonutChart({
               <span className="min-w-0 flex-1 truncate text-sm font-medium">
                 {selectedSlice.name}
               </span>
-              <span className="font-display text-sm font-semibold tabular-nums">
+              <span
+                className={cn(
+                  "font-display text-sm font-semibold tabular-nums",
+                  isExpense ? "text-destructive" : "text-primary",
+                )}
+              >
                 {formatCents(selectedSlice.value)}
               </span>
-              <span className="text-sm text-primary tabular-nums">{pct(selectedSlice.value)}</span>
+              <span
+                className={cn(
+                  "text-sm tabular-nums",
+                  isExpense ? "text-destructive" : "text-primary",
+                )}
+              >
+                {pct(selectedSlice.value)}
+              </span>
             </div>
           )}
 
@@ -187,7 +206,12 @@ export function DonutChart({
                 />
                 <span className="truncate text-sm">{s.name}</span>
                 <span className="flex items-center gap-2">
-                  <span className="font-display text-sm font-semibold tabular-nums">
+                  <span
+                    className={cn(
+                      "font-display text-sm font-semibold tabular-nums",
+                      isExpense ? "text-destructive" : "text-primary",
+                    )}
+                  >
                     {formatCents(s.value)}
                   </span>
                   <span className="min-w-14 text-right text-xs text-muted-foreground tabular-nums">

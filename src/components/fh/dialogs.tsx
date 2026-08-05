@@ -23,7 +23,7 @@ import { formatCents, formatDate, MONTHS, todayISO } from "@/lib/money";
 import { useStore } from "@/lib/store";
 import type { Category, Entry, Scope } from "@/lib/types";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Pencil, Plus, Trash2 } from "lucide-react";
 
 interface BaseProps {
   open: boolean;
@@ -33,9 +33,7 @@ interface BaseProps {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-2">
-      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-        {label}
-      </Label>
+      <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -59,10 +57,7 @@ function CategorySelect({
         {categories.map((c) => (
           <SelectItem key={c.id} value={c.id}>
             <span className="flex items-center gap-2">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: c.color }}
-              />
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: c.color }} />
               {c.name}
             </span>
           </SelectItem>
@@ -74,11 +69,7 @@ function CategorySelect({
 
 /* --------------------------- Renda --------------------------- */
 
-export function IncomeDialog({
-  open,
-  onOpenChange,
-  scope,
-}: BaseProps & { scope: Scope }) {
+export function IncomeDialog({ open, onOpenChange, scope }: BaseProps & { scope: Scope }) {
   const { categories, addIncome } = useStore();
   const [amount, setAmount] = useState(0);
   const [categoryId, setCategoryId] = useState("");
@@ -101,21 +92,22 @@ export function IncomeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl">
         <DialogHeader>
-          <DialogTitle>Nova renda</DialogTitle>
-          <DialogDescription>
-            {scope === "empresa" ? "Empresa" : "Pessoal"}
-          </DialogDescription>
+          <DialogTitle>
+            <span className="flex items-center gap-2.5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+                <ArrowUpRight className="size-4" />
+              </span>
+              Nova renda
+            </span>
+          </DialogTitle>
+          <DialogDescription>{scope === "empresa" ? "Empresa" : "Pessoal"}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <Field label="Valor">
             <CurrencyInput value={amount} onChange={setAmount} autoFocus />
           </Field>
           <Field label="Categoria">
-            <CategorySelect
-              value={categoryId}
-              onChange={setCategoryId}
-              categories={categories}
-            />
+            <CategorySelect value={categoryId} onChange={setCategoryId} categories={categories} />
           </Field>
           <Field label="Descrição (opcional)">
             <Input
@@ -145,11 +137,7 @@ export function IncomeDialog({
 
 /* --------------------------- Despesa --------------------------- */
 
-export function ExpenseDialog({
-  open,
-  onOpenChange,
-  scope,
-}: BaseProps & { scope: Scope }) {
+export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope: Scope }) {
   const { categories, addExpense } = useStore();
   const [amount, setAmount] = useState(0);
   const [categoryId, setCategoryId] = useState("");
@@ -190,21 +178,22 @@ export function ExpenseDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl">
         <DialogHeader>
-          <DialogTitle>Nova despesa</DialogTitle>
-          <DialogDescription>
-            {scope === "empresa" ? "Empresa" : "Pessoal"}
-          </DialogDescription>
+          <DialogTitle>
+            <span className="flex items-center gap-2.5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-destructive/15 text-destructive">
+                <ArrowDownRight className="size-4" />
+              </span>
+              Nova despesa
+            </span>
+          </DialogTitle>
+          <DialogDescription>{scope === "empresa" ? "Empresa" : "Pessoal"}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <Field label="Valor total">
             <CurrencyInput value={amount} onChange={setAmount} autoFocus />
           </Field>
           <Field label="Categoria">
-            <CategorySelect
-              value={categoryId}
-              onChange={setCategoryId}
-              categories={categories}
-            />
+            <CategorySelect value={categoryId} onChange={setCategoryId} categories={categories} />
           </Field>
           <Field label="Descrição (opcional)">
             <Input
@@ -221,21 +210,16 @@ export function ExpenseDialog({
               disabled={fixed}
               className="h-12 rounded-2xl bg-secondary/60"
               value={installments}
-              onChange={(e) =>
-                setInstallments(Math.max(1, Number(e.target.value) || 1))
-              }
+              onChange={(e) => setInstallments(Math.max(1, Number(e.target.value) || 1))}
             />
             {!fixed && installments > 1 && amount > 0 && (
-              <p className="text-xs text-primary">
+              <p className="text-xs text-destructive">
                 {installments}x de {formatCents(Math.floor(amount / installments))}
               </p>
             )}
           </Field>
           <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
-            <Checkbox
-              checked={fixed}
-              onCheckedChange={(v) => setFixed(Boolean(v))}
-            />
+            <Checkbox checked={fixed} onCheckedChange={(v) => setFixed(Boolean(v))} />
             <span className="text-sm">
               Despesa fixa
               <span className="block text-xs text-muted-foreground">
@@ -253,7 +237,11 @@ export function ExpenseDialog({
           </Field>
         </div>
         <DialogFooter>
-          <Button className="h-12 w-full rounded-2xl text-base" onClick={save}>
+          <Button
+            variant="destructive"
+            className="h-12 w-full rounded-2xl text-base"
+            onClick={save}
+          >
             Salvar
           </Button>
         </DialogFooter>
@@ -280,7 +268,10 @@ export function ReserveDepositDialog({ open, onOpenChange }: BaseProps) {
           <Button
             className="h-12 w-full rounded-2xl"
             onClick={() => {
-              if (!amount) { toast.error("Informe o valor"); return; }
+              if (!amount) {
+                toast.error("Informe o valor");
+                return;
+              }
               reserveDeposit(amount);
               toast.success("Reserva atualizada");
               setAmount(0);
@@ -306,8 +297,8 @@ export function ReserveWithdrawDialog({ open, onOpenChange }: BaseProps) {
         <DialogHeader>
           <DialogTitle>Retirar da reserva</DialogTitle>
           <DialogDescription>
-            Disponível: {formatCents(reserve)} — gera uma despesa com o destino
-            informado, sem alterar o saldo principal.
+            Disponível: {formatCents(reserve)} — gera uma despesa com o destino informado, sem
+            alterar o saldo principal.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -323,10 +314,7 @@ export function ReserveWithdrawDialog({ open, onOpenChange }: BaseProps) {
             />
           </Field>
           <Field label="Lançar em">
-            <Select
-              value={scope}
-              onValueChange={(v) => setScope(v as Scope)}
-            >
+            <Select value={scope} onValueChange={(v) => setScope(v as Scope)}>
               <SelectTrigger className="h-12 rounded-2xl bg-secondary/60">
                 <SelectValue />
               </SelectTrigger>
@@ -341,7 +329,10 @@ export function ReserveWithdrawDialog({ open, onOpenChange }: BaseProps) {
           <Button
             className="h-12 w-full rounded-2xl"
             onClick={() => {
-              if (!amount || !destination.trim()) { toast.error("Informe valor e destino"); return; }
+              if (!amount || !destination.trim()) {
+                toast.error("Informe valor e destino");
+                return;
+              }
               reserveWithdraw(amount, destination.trim(), scope);
               toast.success("Retirada registrada");
               setAmount(0);
@@ -370,9 +361,7 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
       <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl">
         <DialogHeader>
           <DialogTitle>Categorias</DialogTitle>
-          <DialogDescription>
-            Usadas em rendas, despesas, filtros e relatórios.
-          </DialogDescription>
+          <DialogDescription>Usadas em rendas, despesas, filtros e relatórios.</DialogDescription>
         </DialogHeader>
         <div className="flex gap-2">
           <Input
@@ -399,10 +388,7 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
               key={c.id}
               className="flex items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3"
             >
-              <span
-                className="size-3 shrink-0 rounded-full"
-                style={{ backgroundColor: c.color }}
-              />
+              <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
               {editing === c.id ? (
                 <Input
                   className="h-9 rounded-xl"
@@ -465,9 +451,7 @@ export function ReportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl">
         <DialogHeader>
-          <DialogTitle>
-            {kind === "monthly" ? "Relatório mensal" : "Relatório anual"}
-          </DialogTitle>
+          <DialogTitle>{kind === "monthly" ? "Relatório mensal" : "Relatório anual"}</DialogTitle>
           <DialogDescription>
             {scope === "empresa" ? "Empresa" : "Pessoal"} • exportação em PDF
           </DialogDescription>
@@ -547,10 +531,7 @@ export function EditEntryDialog({
             />
           </Field>
           <Field label="Valor já pago">
-            <CurrencyInput
-              value={draft.paid}
-              onChange={(v) => setDraft({ ...draft, paid: v })}
-            />
+            <CurrencyInput value={draft.paid} onChange={(v) => setDraft({ ...draft, paid: v })} />
           </Field>
           <Field label="Categoria">
             <CategorySelect
@@ -633,14 +614,11 @@ export function DetailDialog({
       <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {entries.length} lançamento(s) nesta categoria
-          </DialogDescription>
+          <DialogDescription>{entries.length} lançamento(s) nesta categoria</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           {entries.map((e) => {
-            const status =
-              e.paid >= e.amount ? "Pago" : e.paid > 0 ? "Parcial" : "A pagar";
+            const status = e.paid >= e.amount ? "Pago" : e.paid > 0 ? "Parcial" : "A pagar";
             return (
               <button
                 key={e.id}
@@ -669,9 +647,7 @@ export function DetailDialog({
                     </span>
                   </p>
                 </div>
-                <span className="font-display text-sm font-semibold">
-                  {formatCents(e.amount)}
-                </span>
+                <span className="font-display text-sm font-semibold">{formatCents(e.amount)}</span>
               </button>
             );
           })}
@@ -704,9 +680,13 @@ export function PartialPaymentDialog({
         </Field>
         <DialogFooter>
           <Button
+            variant="destructive"
             className="h-12 w-full rounded-2xl"
             onClick={() => {
-              if (!amount) { toast.error("Informe o valor"); return; }
+              if (!amount) {
+                toast.error("Informe o valor");
+                return;
+              }
               payPartial(entry.id, amount);
               toast.success("Pagamento registrado");
               setAmount(0);
