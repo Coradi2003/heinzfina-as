@@ -693,7 +693,7 @@ export function Dashboard() {
       </AlertDialog>
 
       <footer className="mt-10 text-center text-xs text-muted-foreground">
-        Dados salvos localmente no seu dispositivo • {monthKey(new Date().toISOString())}
+        Dados sincronizados com a nuvem • {monthKey(new Date().toISOString())}
       </footer>
     </main>
   );

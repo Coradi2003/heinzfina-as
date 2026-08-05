@@ -7,7 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { CATEGORY_COLORS, DEFAULT_CATEGORIES, indexedDbRepository } from "./db";
+import { CATEGORY_COLORS, DEFAULT_CATEGORIES } from "./db";
+import { supabaseRepository } from "./db-supabase";
 import { addMonths, monthKey } from "./money";
 import { uid, type Category, type Entry, type Scope } from "./types";
 
@@ -61,9 +62,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let alive = true;
     (async () => {
       const [e, c, m] = await Promise.all([
-        indexedDbRepository.loadEntries(),
-        indexedDbRepository.loadCategories(),
-        indexedDbRepository.loadMeta(),
+        supabaseRepository.loadEntries(),
+        supabaseRepository.loadCategories(),
+        supabaseRepository.loadMeta(),
       ]);
       if (!alive) return;
       setEntries(e);
@@ -77,13 +78,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (ready) void indexedDbRepository.saveEntries(entries);
+    if (ready) void supabaseRepository.saveEntries(entries);
   }, [entries, ready]);
   useEffect(() => {
-    if (ready) void indexedDbRepository.saveCategories(categories);
+    if (ready) void supabaseRepository.saveCategories(categories);
   }, [categories, ready]);
   useEffect(() => {
-    if (ready) void indexedDbRepository.saveMeta({ reserve });
+    if (ready) void supabaseRepository.saveMeta({ reserve });
   }, [reserve, ready]);
 
   const addExpense = useCallback((input: NewExpenseInput) => {
