@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { formatCents, formatDate, MONTHS, monthKey } from "@/lib/money";
 import { globalTotals, scopeTotals, useStore } from "@/lib/store";
 import { annualReportPdf, monthlyReportPdf } from "@/lib/pdf";
-import type { Entry, Scope } from "@/lib/types";
+import type { Category, Entry, Scope } from "@/lib/types";
 import {
   CategoriesDialog,
   DetailDialog,
@@ -168,7 +168,8 @@ export function Dashboard() {
   const [dialogScope, setDialogScope] = useState<Scope>("empresa");
   const [activeEntry, setActiveEntry] = useState<Entry | null>(null);
   const [detailGroup, setDetailGroup] = useState<{
-    title: string;
+    category: Category;
+    scope: Scope;
     entries: Entry[];
   } | null>(null);
   const [confirmPay, setConfirmPay] = useState<Entry[] | null>(null);
@@ -516,11 +517,25 @@ export function Dashboard() {
           </p>
         )}
 
-        {groups.map((g) => (
-          <DropdownMenu key={g.key}>
-            <DropdownMenuTrigger asChild>
-              <button className="grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border/60 px-4 py-4 text-left transition-colors last:border-0 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
-                <span className="flex min-w-0 items-center gap-3">
+        {groups.map((g) => {
+          const detailCategory: Category = {
+            id: g.categoryId,
+            name: catName(g.categoryId),
+            color: catColor(g.categoryId),
+            icon: catIcon(g.categoryId) ?? "Tag",
+          };
+          const openDetail = () => {
+            setDetailGroup({ category: detailCategory, scope: g.scope, entries: g.entries });
+            setDialog("detail");
+          };
+          return (
+            <DropdownMenu key={g.key}>
+              <div className="grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border/60 px-4 py-4 transition-colors last:border-0 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
+                <button
+                  onClick={openDetail}
+                  title="Ver lançamentos da categoria"
+                  className="relative z-10 flex min-w-0 items-center gap-3 text-left"
+                >
                   <span
                     className="grid size-9 shrink-0 place-items-center rounded-xl"
                     style={{
@@ -539,67 +554,65 @@ export function Dashboard() {
                       venc. {formatDate(g.nextDue)}
                     </span>
                   </span>
-                </span>
-                <span className="hidden text-sm text-muted-foreground sm:block">
-                  {formatDate(g.nextDue)}
-                </span>
-                <span className="text-right font-display text-sm font-semibold tabular-nums text-destructive">
-                  {formatCents(g.parcelSum)}
-                </span>
-                <span className="hidden text-right text-sm text-destructive/70 tabular-nums sm:block">
-                  {g.totalLabel}
-                </span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-2xl">
-              <DropdownMenuLabel>{catName(g.categoryId)}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={() => {
-                  setActiveEntry(g.pending[0] ?? g.entries[0] ?? null);
-                  setDialog("edit");
-                }}
-              >
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  setDetailGroup({
-                    title: `${catName(g.categoryId)} • ${g.scope === "empresa" ? "Empresa" : "Pessoal"}`,
-                    entries: g.entries,
-                  });
-                  setDialog("detail");
-                }}
-              >
-                Detalhar
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  const target = g.pending[0];
-                  if (!target) {
-                    toast.info("Não há parcelas em aberto");
-                    return;
-                  }
-                  setActiveEntry(target);
-                  setDialog("partial");
-                }}
-              >
-                Pagamento parcial
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  if (g.pending.length === 0) {
-                    toast.info("Tudo já está pago");
-                    return;
-                  }
-                  setConfirmPay(g.pending);
-                }}
-              >
-                Pagamento total
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ))}
+                </button>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    onDoubleClick={openDetail}
+                    title="Opções (duplo clique: detalhar)"
+                    className="flex items-center justify-end gap-2 sm:col-span-3 sm:grid sm:grid-cols-3"
+                  >
+                    <span className="hidden text-sm text-muted-foreground sm:block">
+                      {formatDate(g.nextDue)}
+                    </span>
+                    <span className="text-right font-display text-sm font-semibold tabular-nums text-destructive">
+                      {formatCents(g.parcelSum)}
+                    </span>
+                    <span className="hidden text-right text-sm text-destructive/70 tabular-nums sm:block">
+                      {g.totalLabel}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+              </div>
+              <DropdownMenuContent align="end" className="w-56 rounded-2xl">
+                <DropdownMenuLabel>{catName(g.categoryId)}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={() => {
+                    setActiveEntry(g.pending[0] ?? g.entries[0] ?? null);
+                    setDialog("edit");
+                  }}
+                >
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openDetail()}>Detalhar</DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    const target = g.pending[0];
+                    if (!target) {
+                      toast.info("Não há parcelas em aberto");
+                      return;
+                    }
+                    setActiveEntry(target);
+                    setDialog("partial");
+                  }}
+                >
+                  Pagamento parcial
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    if (g.pending.length === 0) {
+                      toast.info("Tudo já está pago");
+                      return;
+                    }
+                    setConfirmPay(g.pending);
+                  }}
+                >
+                  Pagamento total
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        })}
       </section>
 
       {/* Dialogs */}
@@ -658,12 +671,9 @@ export function Dashboard() {
       <DetailDialog
         open={dialog === "detail"}
         onOpenChange={(v) => setDialog(v ? "detail" : null)}
-        title={detailGroup?.title ?? ""}
+        category={detailGroup?.category ?? null}
+        scope={detailGroup?.scope ?? "empresa"}
         entries={detailGroup?.entries ?? []}
-        onEdit={(e) => {
-          setActiveEntry(e);
-          setDialog("edit");
-        }}
       />
       <AlertDialog open={Boolean(confirmPay)} onOpenChange={(v) => !v && setConfirmPay(null)}>
         <AlertDialogContent className="rounded-3xl">

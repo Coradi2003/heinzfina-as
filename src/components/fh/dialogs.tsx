@@ -21,6 +21,7 @@ import {
 import { CurrencyInput } from "./CurrencyInput";
 import { IconPicker, SelectedIcon, SelectedIconSmall } from "./IconPicker";
 import { formatCents, formatDate, MONTHS, todayISO } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import type { Category, Entry, Scope } from "@/lib/types";
 import { toast } from "sonner";
@@ -651,59 +652,153 @@ export function EditEntryDialog({
 export function DetailDialog({
   open,
   onOpenChange,
-  title,
+  category,
+  scope,
   entries,
-  onEdit,
 }: BaseProps & {
-  title: string;
+  category: Category | null;
+  scope: Scope;
   entries: Entry[];
-  onEdit: (entry: Entry) => void;
 }) {
+  const total = entries.reduce((acc, e) => acc + e.amount, 0);
+  const paid = entries.reduce((acc, e) => acc + e.paid, 0);
+  const pending = total - paid;
+  const color = category?.color ?? "#34d399";
+
+  const labelOf = (e: Entry) =>
+    e.description ||
+    (e.installmentCount ? `Parcela ${e.installmentIndex}/${e.installmentCount}` : "Lançamento");
+
+  const statusOf = (e: Entry): "Pago" | "Parcial" | "Em aberto" =>
+    e.paid >= e.amount ? "Pago" : e.paid > 0 ? "Parcial" : "Em aberto";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl sm:max-w-lg">
+      <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{entries.length} lançamento(s) nesta categoria</DialogDescription>
+          <DialogTitle>
+            <span className="flex items-center gap-2.5">
+              <span
+                className="grid size-9 shrink-0 place-items-center rounded-xl"
+                style={{ backgroundColor: `${color}22`, color }}
+              >
+                <SelectedIcon name={category?.icon} />
+              </span>
+              {category?.name ?? "Sem categoria"}
+            </span>
+          </DialogTitle>
+          <DialogDescription>
+            {scope === "empresa" ? "Empresa" : "Pessoal"} • {entries.length} lançamento(s)
+          </DialogDescription>
         </DialogHeader>
+
+        {/* Resumo da categoria */}
+        <div className="grid grid-cols-3 gap-2">
+          <DetailSummary label="Total" value={formatCents(total)} tone="negative" />
+          <DetailSummary label="Pago" value={formatCents(paid)} tone="positive" />
+          <DetailSummary
+            label="Pendente"
+            value={formatCents(pending)}
+            tone={pending > 0 ? "negative" : "positive"}
+          />
+        </div>
+
+        {/* Cabeçalho da tabela (desktop) */}
+        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid">
+          <span>Data</span>
+          <span>Descrição</span>
+          <span>Vencimento</span>
+          <span className="text-right">Valor</span>
+          <span className="text-right">Status</span>
+        </div>
+
+        {entries.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Nenhum lançamento nesta categoria.
+          </p>
+        )}
+
         <div className="space-y-2">
           {entries.map((e) => {
-            const status = e.paid >= e.amount ? "Pago" : e.paid > 0 ? "Parcial" : "A pagar";
+            const status = statusOf(e);
             return (
-              <button
+              <div
                 key={e.id}
-                onClick={() => onEdit(e)}
-                className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3 text-left transition-colors hover:border-primary/40"
+                className="rounded-2xl border border-border bg-secondary/40 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-3"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {e.description ||
-                      (e.installmentCount
-                        ? `Parcela ${e.installmentIndex}/${e.installmentCount}`
-                        : "Lançamento")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDate(e.date)} •{" "}
-                    <span
-                      className={
-                        status === "Pago"
-                          ? "text-primary"
-                          : status === "Parcial"
-                            ? "text-warning"
-                            : "text-destructive"
-                      }
-                    >
-                      {status}
+                {/* Mobile */}
+                <div className="sm:hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm font-medium">{labelOf(e)}</span>
+                    <DetailStatus status={status} />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span className="tabular-nums">{formatDate(e.date)}</span>
+                    <span className="font-display text-sm font-semibold tabular-nums text-foreground">
+                      {formatCents(e.amount)}
                     </span>
-                  </p>
+                  </div>
                 </div>
-                <span className="font-display text-sm font-semibold">{formatCents(e.amount)}</span>
-              </button>
+                {/* Desktop */}
+                <span className="hidden text-sm tabular-nums sm:block">{formatDate(e.date)}</span>
+                <span className="hidden truncate text-sm sm:block">{labelOf(e)}</span>
+                <span className="hidden text-sm tabular-nums sm:block">{formatDate(e.date)}</span>
+                <span className="hidden text-right font-display text-sm font-semibold tabular-nums sm:block">
+                  {formatCents(e.amount)}
+                </span>
+                <span className="hidden justify-self-end sm:block">
+                  <DetailStatus status={status} />
+                </span>
+              </div>
             );
           })}
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DetailSummary({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "positive" | "negative";
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-secondary/40 px-3 py-3">
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p
+        className={cn(
+          "mt-1 font-display text-base font-bold tabular-nums",
+          tone === "positive" && "text-primary",
+          tone === "negative" && "text-destructive",
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function DetailStatus({ status }: { status: "Pago" | "Parcial" | "Em aberto" }) {
+  const styles =
+    status === "Pago"
+      ? "bg-primary/15 text-primary"
+      : status === "Parcial"
+        ? "bg-warning/15 text-warning"
+        : "bg-destructive/15 text-destructive";
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+        styles,
+      )}
+    >
+      {status}
+    </span>
   );
 }
 
