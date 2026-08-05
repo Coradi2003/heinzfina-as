@@ -1,0 +1,722 @@
+import { useState, type ReactNode } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CurrencyInput } from "./CurrencyInput";
+import { formatCents, formatDate, MONTHS, todayISO } from "@/lib/money";
+import { useStore } from "@/lib/store";
+import type { Category, Entry, Scope } from "@/lib/types";
+import { toast } from "sonner";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+
+interface BaseProps {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+function CategorySelect({
+  value,
+  onChange,
+  categories,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  categories: Category[];
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-12 rounded-2xl bg-secondary/60">
+        <SelectValue placeholder="Selecione a categoria" />
+      </SelectTrigger>
+      <SelectContent>
+        {categories.map((c) => (
+          <SelectItem key={c.id} value={c.id}>
+            <span className="flex items-center gap-2">
+              <span
+                className="size-2.5 rounded-full"
+                style={{ backgroundColor: c.color }}
+              />
+              {c.name}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/* --------------------------- Renda --------------------------- */
+
+export function IncomeDialog({
+  open,
+  onOpenChange,
+  scope,
+}: BaseProps & { scope: Scope }) {
+  const { categories, addIncome } = useStore();
+  const [amount, setAmount] = useState(0);
+  const [categoryId, setCategoryId] = useState("");
+  const [description, setDescription] = useState("");
+  const [date, setDate] = useState(todayISO());
+
+  const save = () => {
+    if (!amount || !categoryId) {
+      toast.error("Informe valor e categoria");
+      return;
+    }
+    addIncome({ scope, categoryId, description, amount, date });
+    toast.success("Renda cadastrada");
+    setAmount(0);
+    setDescription("");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>Nova renda</DialogTitle>
+          <DialogDescription>
+            {scope === "empresa" ? "Empresa" : "Pessoal"}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Field label="Valor">
+            <CurrencyInput value={amount} onChange={setAmount} autoFocus />
+          </Field>
+          <Field label="Categoria">
+            <CategorySelect
+              value={categoryId}
+              onChange={setCategoryId}
+              categories={categories}
+            />
+          </Field>
+          <Field label="Descrição (opcional)">
+            <Input
+              className="h-12 rounded-2xl bg-secondary/60"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </Field>
+          <Field label="Data">
+            <Input
+              type="date"
+              className="h-12 rounded-2xl bg-secondary/60"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button className="h-12 w-full rounded-2xl text-base" onClick={save}>
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* --------------------------- Despesa --------------------------- */
+
+export function ExpenseDialog({
+  open,
+  onOpenChange,
+  scope,
+}: BaseProps & { scope: Scope }) {
+  const { categories, addExpense } = useStore();
+  const [amount, setAmount] = useState(0);
+  const [categoryId, setCategoryId] = useState("");
+  const [description, setDescription] = useState("");
+  const [installments, setInstallments] = useState(1);
+  const [fixed, setFixed] = useState(false);
+  const [dueDate, setDueDate] = useState(todayISO());
+
+  const save = () => {
+    if (!amount || !categoryId) {
+      toast.error("Informe valor e categoria");
+      return;
+    }
+    addExpense({
+      scope,
+      categoryId,
+      description,
+      amount,
+      installments: fixed ? 1 : installments,
+      fixed,
+      dueDate,
+    });
+    toast.success(
+      fixed
+        ? "Despesa fixa criada para todos os meses do ano"
+        : installments > 1
+          ? `${installments} parcelas criadas`
+          : "Despesa cadastrada",
+    );
+    setAmount(0);
+    setDescription("");
+    setInstallments(1);
+    setFixed(false);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>Nova despesa</DialogTitle>
+          <DialogDescription>
+            {scope === "empresa" ? "Empresa" : "Pessoal"}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Field label="Valor total">
+            <CurrencyInput value={amount} onChange={setAmount} autoFocus />
+          </Field>
+          <Field label="Categoria">
+            <CategorySelect
+              value={categoryId}
+              onChange={setCategoryId}
+              categories={categories}
+            />
+          </Field>
+          <Field label="Descrição (opcional)">
+            <Input
+              className="h-12 rounded-2xl bg-secondary/60"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </Field>
+          <Field label="Número de parcelas">
+            <Input
+              type="number"
+              min={1}
+              max={120}
+              disabled={fixed}
+              className="h-12 rounded-2xl bg-secondary/60"
+              value={installments}
+              onChange={(e) =>
+                setInstallments(Math.max(1, Number(e.target.value) || 1))
+              }
+            />
+            {!fixed && installments > 1 && amount > 0 && (
+              <p className="text-xs text-primary">
+                {installments}x de {formatCents(Math.floor(amount / installments))}
+              </p>
+            )}
+          </Field>
+          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
+            <Checkbox
+              checked={fixed}
+              onCheckedChange={(v) => setFixed(Boolean(v))}
+            />
+            <span className="text-sm">
+              Despesa fixa
+              <span className="block text-xs text-muted-foreground">
+                Repete em todos os meses do ano
+              </span>
+            </span>
+          </label>
+          <Field label="Data de vencimento">
+            <Input
+              type="date"
+              className="h-12 rounded-2xl bg-secondary/60"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button className="h-12 w-full rounded-2xl text-base" onClick={save}>
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* --------------------------- Reserva --------------------------- */
+
+export function ReserveDepositDialog({ open, onOpenChange }: BaseProps) {
+  const { reserveDeposit } = useStore();
+  const [amount, setAmount] = useState(0);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>Adicionar à reserva</DialogTitle>
+        </DialogHeader>
+        <Field label="Valor">
+          <CurrencyInput value={amount} onChange={setAmount} autoFocus />
+        </Field>
+        <DialogFooter>
+          <Button
+            className="h-12 w-full rounded-2xl"
+            onClick={() => {
+              if (!amount) { toast.error("Informe o valor"); return; }
+              reserveDeposit(amount);
+              toast.success("Reserva atualizada");
+              setAmount(0);
+              onOpenChange(false);
+            }}
+          >
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function ReserveWithdrawDialog({ open, onOpenChange }: BaseProps) {
+  const { reserveWithdraw, reserve } = useStore();
+  const [amount, setAmount] = useState(0);
+  const [destination, setDestination] = useState("");
+  const [scope, setScope] = useState<Scope>("pessoal");
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>Retirar da reserva</DialogTitle>
+          <DialogDescription>
+            Disponível: {formatCents(reserve)} — gera uma despesa com o destino
+            informado, sem alterar o saldo principal.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Field label="Valor">
+            <CurrencyInput value={amount} onChange={setAmount} autoFocus />
+          </Field>
+          <Field label="Destino">
+            <Input
+              className="h-12 rounded-2xl bg-secondary/60"
+              placeholder="Ex.: conserto do carro"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+            />
+          </Field>
+          <Field label="Lançar em">
+            <Select
+              value={scope}
+              onValueChange={(v) => setScope(v as Scope)}
+            >
+              <SelectTrigger className="h-12 rounded-2xl bg-secondary/60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pessoal">Pessoal</SelectItem>
+                <SelectItem value="empresa">Empresa</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button
+            className="h-12 w-full rounded-2xl"
+            onClick={() => {
+              if (!amount || !destination.trim()) { toast.error("Informe valor e destino"); return; }
+              reserveWithdraw(amount, destination.trim(), scope);
+              toast.success("Retirada registrada");
+              setAmount(0);
+              setDestination("");
+              onOpenChange(false);
+            }}
+          >
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* --------------------------- Categorias --------------------------- */
+
+export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
+  const { categories, addCategory, updateCategory, deleteCategory } = useStore();
+  const [name, setName] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>Categorias</DialogTitle>
+          <DialogDescription>
+            Usadas em rendas, despesas, filtros e relatórios.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex gap-2">
+          <Input
+            className="h-12 rounded-2xl bg-secondary/60"
+            placeholder="Nova categoria"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Button
+            size="icon"
+            className="size-12 shrink-0 rounded-2xl"
+            onClick={() => {
+              if (!name.trim()) return;
+              addCategory(name.trim());
+              setName("");
+            }}
+          >
+            <Plus />
+          </Button>
+        </div>
+        <div className="space-y-2">
+          {categories.map((c) => (
+            <div
+              key={c.id}
+              className="flex items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3"
+            >
+              <span
+                className="size-3 shrink-0 rounded-full"
+                style={{ backgroundColor: c.color }}
+              />
+              {editing === c.id ? (
+                <Input
+                  className="h-9 rounded-xl"
+                  value={editName}
+                  autoFocus
+                  onChange={(e) => setEditName(e.target.value)}
+                  onBlur={() => {
+                    if (editName.trim()) updateCategory(c.id, { name: editName.trim() });
+                    setEditing(null);
+                  }}
+                />
+              ) : (
+                <span className="min-w-0 flex-1 truncate text-sm">{c.name}</span>
+              )}
+              <button
+                className="text-muted-foreground transition-colors hover:text-primary"
+                onClick={() => {
+                  setEditing(c.id);
+                  setEditName(c.name);
+                }}
+              >
+                <Pencil className="size-4" />
+              </button>
+              <button
+                className="text-muted-foreground transition-colors hover:text-destructive"
+                onClick={() => {
+                  deleteCategory(c.id);
+                  toast.success("Categoria excluída");
+                }}
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* --------------------------- Relatórios --------------------------- */
+
+export function ReportDialog({
+  open,
+  onOpenChange,
+  kind,
+  scope,
+  onGenerate,
+}: BaseProps & {
+  kind: "monthly" | "annual";
+  scope: Scope;
+  onGenerate: (value: string) => void;
+}) {
+  const now = new Date();
+  const [month, setMonth] = useState(String(now.getMonth() + 1).padStart(2, "0"));
+  const [year, setYear] = useState(String(now.getFullYear()));
+  const years = Array.from({ length: 7 }, (_, i) => String(now.getFullYear() - 3 + i));
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>
+            {kind === "monthly" ? "Relatório mensal" : "Relatório anual"}
+          </DialogTitle>
+          <DialogDescription>
+            {scope === "empresa" ? "Empresa" : "Pessoal"} • exportação em PDF
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          {kind === "monthly" && (
+            <Field label="Mês">
+              <Select value={month} onValueChange={setMonth}>
+                <SelectTrigger className="h-12 rounded-2xl bg-secondary/60">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m, i) => (
+                    <SelectItem key={m} value={String(i + 1).padStart(2, "0")}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+          <Field label="Ano">
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger className="h-12 rounded-2xl bg-secondary/60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((y) => (
+                  <SelectItem key={y} value={y}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button
+            className="h-12 w-full rounded-2xl"
+            onClick={() => {
+              onGenerate(kind === "monthly" ? `${year}-${month}` : year);
+              onOpenChange(false);
+            }}
+          >
+            Gerar PDF
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* --------------------------- Edição / Detalhe / Pagamentos --------------------------- */
+
+export function EditEntryDialog({
+  open,
+  onOpenChange,
+  entry,
+}: BaseProps & { entry: Entry | null }) {
+  const { categories, updateEntry, deleteEntry } = useStore();
+  const [draft, setDraft] = useState<Entry | null>(entry);
+
+  if (draft?.id !== entry?.id) setDraft(entry);
+  if (!draft) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>Editar lançamento</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Field label="Valor">
+            <CurrencyInput
+              value={draft.amount}
+              onChange={(v) => setDraft({ ...draft, amount: v })}
+            />
+          </Field>
+          <Field label="Valor já pago">
+            <CurrencyInput
+              value={draft.paid}
+              onChange={(v) => setDraft({ ...draft, paid: v })}
+            />
+          </Field>
+          <Field label="Categoria">
+            <CategorySelect
+              value={draft.categoryId}
+              onChange={(v) => setDraft({ ...draft, categoryId: v })}
+              categories={categories}
+            />
+          </Field>
+          <Field label="Descrição">
+            <Input
+              className="h-12 rounded-2xl bg-secondary/60"
+              value={draft.description}
+              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            />
+          </Field>
+          <Field label="Vencimento">
+            <Input
+              type="date"
+              className="h-12 rounded-2xl bg-secondary/60"
+              value={draft.date}
+              onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+            />
+          </Field>
+          <Field label="Painel">
+            <Select
+              value={draft.scope}
+              onValueChange={(v) => setDraft({ ...draft, scope: v as Scope })}
+            >
+              <SelectTrigger className="h-12 rounded-2xl bg-secondary/60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="empresa">Empresa</SelectItem>
+                <SelectItem value="pessoal">Pessoal</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+        <DialogFooter className="flex-row gap-2">
+          <Button
+            variant="ghost"
+            className="h-12 rounded-2xl text-destructive"
+            onClick={() => {
+              deleteEntry(draft.id);
+              toast.success("Lançamento excluído");
+              onOpenChange(false);
+            }}
+          >
+            <Trash2 />
+          </Button>
+          <Button
+            className="h-12 flex-1 rounded-2xl"
+            onClick={() => {
+              updateEntry(draft.id, draft);
+              toast.success("Lançamento atualizado");
+              onOpenChange(false);
+            }}
+          >
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function DetailDialog({
+  open,
+  onOpenChange,
+  title,
+  entries,
+  onEdit,
+}: BaseProps & {
+  title: string;
+  entries: Entry[];
+  onEdit: (entry: Entry) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {entries.length} lançamento(s) nesta categoria
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          {entries.map((e) => {
+            const status =
+              e.paid >= e.amount ? "Pago" : e.paid > 0 ? "Parcial" : "A pagar";
+            return (
+              <button
+                key={e.id}
+                onClick={() => onEdit(e)}
+                className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3 text-left transition-colors hover:border-primary/40"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {e.description ||
+                      (e.installmentCount
+                        ? `Parcela ${e.installmentIndex}/${e.installmentCount}`
+                        : "Lançamento")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(e.date)} •{" "}
+                    <span
+                      className={
+                        status === "Pago"
+                          ? "text-primary"
+                          : status === "Parcial"
+                            ? "text-warning"
+                            : "text-destructive"
+                      }
+                    >
+                      {status}
+                    </span>
+                  </p>
+                </div>
+                <span className="font-display text-sm font-semibold">
+                  {formatCents(e.amount)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function PartialPaymentDialog({
+  open,
+  onOpenChange,
+  entry,
+}: BaseProps & { entry: Entry | null }) {
+  const { payPartial } = useStore();
+  const [amount, setAmount] = useState(0);
+  if (!entry) return null;
+  const remaining = entry.amount - entry.paid;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>Pagamento parcial</DialogTitle>
+          <DialogDescription>
+            Restam {formatCents(remaining)} — vencimento {formatDate(entry.date)}
+          </DialogDescription>
+        </DialogHeader>
+        <Field label="Valor">
+          <CurrencyInput value={amount} onChange={setAmount} autoFocus />
+        </Field>
+        <DialogFooter>
+          <Button
+            className="h-12 w-full rounded-2xl"
+            onClick={() => {
+              if (!amount) { toast.error("Informe o valor"); return; }
+              payPartial(entry.id, amount);
+              toast.success("Pagamento registrado");
+              setAmount(0);
+              onOpenChange(false);
+            }}
+          >
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
