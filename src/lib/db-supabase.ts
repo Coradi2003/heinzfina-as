@@ -46,6 +46,7 @@ interface CategoryRow {
   id: string;
   name: string;
   color: string;
+  icon: string;
 }
 
 interface MetaRow {
@@ -149,6 +150,7 @@ async function loadCategories(): Promise<Category[] | null> {
       id: r.id,
       name: r.name,
       color: r.color,
+      icon: r.icon ?? "Tag",
     }));
   }
   if (!isMigrated()) {

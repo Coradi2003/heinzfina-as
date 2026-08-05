@@ -3,6 +3,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { formatCents, MONTHS, monthKey } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { SelectedIconSmall } from "./IconPicker";
 import type { Category, Entry, Scope } from "@/lib/types";
 
 type Mode = "despesas" | "receitas";
@@ -11,6 +12,7 @@ interface Slice {
   categoryId: string;
   name: string;
   color: string;
+  icon: string | null | undefined;
   value: number;
 }
 
@@ -44,6 +46,7 @@ export function DonutChart({
           categoryId: id,
           name: c?.name ?? "Sem categoria",
           color: c?.color ?? "#34d399",
+          icon: c?.icon,
           value,
         };
       })
@@ -165,9 +168,11 @@ export function DonutChart({
           {selectedSlice && (
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
               <span
-                className="size-3 shrink-0 rounded-full"
-                style={{ backgroundColor: selectedSlice.color }}
-              />
+                className="grid size-8 shrink-0 place-items-center rounded-xl"
+                style={{ backgroundColor: `${selectedSlice.color}22`, color: selectedSlice.color }}
+              >
+                <SelectedIconSmall name={selectedSlice.icon} />
+              </span>
               <span className="min-w-0 flex-1 truncate text-sm font-medium">
                 {selectedSlice.name}
               </span>
@@ -201,9 +206,11 @@ export function DonutChart({
                 )}
               >
                 <span
-                  className="size-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: s.color }}
-                />
+                  className="grid size-8 shrink-0 place-items-center rounded-xl"
+                  style={{ backgroundColor: `${s.color}22`, color: s.color }}
+                >
+                  <SelectedIconSmall name={s.icon} />
+                </span>
                 <span className="truncate text-sm">{s.name}</span>
                 <span className="flex items-center gap-2">
                   <span

@@ -31,7 +31,8 @@ create index if not exists entries_scope_idx on public.entries (scope);
 create table if not exists public.categories (
   id    text primary key,
   name  text not null,
-  color text not null default '#34d399'
+  color text not null default '#34d399',
+  icon  text not null default 'Tag'
 );
 
 -- Meta (por enquanto: reserva)

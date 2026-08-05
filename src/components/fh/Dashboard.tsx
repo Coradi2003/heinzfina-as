@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   Building2,
   CalendarClock,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -41,6 +42,7 @@ import {
   ReserveWithdrawDialog,
 } from "./dialogs";
 import { DonutChart } from "./DonutChart";
+import { SelectedIcon, SelectedIconSmall } from "./IconPicker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -160,6 +162,7 @@ export function Dashboard() {
   const [scopeFilter, setScopeFilter] = useState<Scope[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter[]>([]);
   const [catFilter, setCatFilter] = useState<string[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [dialog, setDialog] = useState<string | null>(null);
   const [dialogScope, setDialogScope] = useState<Scope>("empresa");
@@ -176,6 +179,7 @@ export function Dashboard() {
 
   const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
   const catColor = (id: string) => categories.find((c) => c.id === id)?.color ?? "#34d399";
+  const catIcon = (id: string) => categories.find((c) => c.id === id)?.icon;
 
   const groups = useMemo(() => {
     const filtered = entries.filter((e) => {
@@ -388,7 +392,7 @@ export function Dashboard() {
             </Button>
             <Button
               size="sm"
-              variant="secondary"
+              variant="destructive"
               className="h-10 flex-1 rounded-2xl"
               onClick={() => setDialog("reserve-out")}
             >
@@ -434,46 +438,67 @@ export function Dashboard() {
 
       {/* Filtros */}
       <section className="mt-6">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+        <button
+          onClick={() => setFiltersOpen((v) => !v)}
+          className="flex w-full items-center gap-2 text-left text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+        >
           <Sparkles className="size-3.5" /> Filtros
-        </div>
-        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
-          <FilterChip
-            active={scopeFilter.includes("empresa")}
-            onClick={() => toggle(scopeFilter, "empresa", setScopeFilter)}
-          >
-            Empresa
-          </FilterChip>
-          <FilterChip
-            active={scopeFilter.includes("pessoal")}
-            onClick={() => toggle(scopeFilter, "pessoal", setScopeFilter)}
-          >
-            Pessoal
-          </FilterChip>
-          <FilterChip
-            active={statusFilter.includes("pago")}
-            onClick={() => toggle(statusFilter, "pago", setStatusFilter)}
-          >
-            Pago
-          </FilterChip>
-          <FilterChip
-            active={statusFilter.includes("apagar")}
-            onClick={() => toggle(statusFilter, "apagar", setStatusFilter)}
-          >
-            A pagar
-          </FilterChip>
-        </div>
-        <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-1">
-          {categories.map((c) => (
-            <FilterChip
-              key={c.id}
-              active={catFilter.includes(c.id)}
-              onClick={() => toggle(catFilter, c.id, setCatFilter)}
-            >
-              {c.name}
-            </FilterChip>
-          ))}
-        </div>
+          {scopeFilter.length + statusFilter.length + catFilter.length > 0 && (
+            <span className="grid size-5 place-items-center rounded-full bg-primary/15 text-[10px] font-bold text-primary tabular-nums">
+              {scopeFilter.length + statusFilter.length + catFilter.length}
+            </span>
+          )}
+          <ChevronDown
+            className={cn(
+              "ml-auto size-4 transition-transform duration-200",
+              filtersOpen && "rotate-180",
+            )}
+          />
+        </button>
+        {filtersOpen && (
+          <>
+            <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+              <FilterChip
+                active={scopeFilter.includes("empresa")}
+                onClick={() => toggle(scopeFilter, "empresa", setScopeFilter)}
+              >
+                Empresa
+              </FilterChip>
+              <FilterChip
+                active={scopeFilter.includes("pessoal")}
+                onClick={() => toggle(scopeFilter, "pessoal", setScopeFilter)}
+              >
+                Pessoal
+              </FilterChip>
+              <FilterChip
+                active={statusFilter.includes("pago")}
+                onClick={() => toggle(statusFilter, "pago", setStatusFilter)}
+              >
+                Pago
+              </FilterChip>
+              <FilterChip
+                active={statusFilter.includes("apagar")}
+                onClick={() => toggle(statusFilter, "apagar", setStatusFilter)}
+              >
+                A pagar
+              </FilterChip>
+            </div>
+            <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-1">
+              {categories.map((c) => (
+                <FilterChip
+                  key={c.id}
+                  active={catFilter.includes(c.id)}
+                  onClick={() => toggle(catFilter, c.id, setCatFilter)}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <SelectedIconSmall name={c.icon} />
+                    {c.name}
+                  </span>
+                </FilterChip>
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* Lista principal */}
@@ -497,9 +522,14 @@ export function Dashboard() {
               <button className="grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border/60 px-4 py-4 text-left transition-colors last:border-0 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
                 <span className="flex min-w-0 items-center gap-3">
                   <span
-                    className="size-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: catColor(g.categoryId) }}
-                  />
+                    className="grid size-9 shrink-0 place-items-center rounded-xl"
+                    style={{
+                      backgroundColor: `${catColor(g.categoryId)}22`,
+                      color: catColor(g.categoryId),
+                    }}
+                  >
+                    <SelectedIcon name={catIcon(g.categoryId)} />
+                  </span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">
                       {catName(g.categoryId)}

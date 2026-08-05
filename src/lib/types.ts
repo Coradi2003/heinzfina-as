@@ -5,6 +5,8 @@ export interface Category {
   id: string;
   name: string;
   color: string;
+  /** nome do ícone Lucide (ver src/lib/icons.ts) */
+  icon: string;
 }
 
 export interface Entry {

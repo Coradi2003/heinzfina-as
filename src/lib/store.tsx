@@ -43,7 +43,7 @@ interface StoreValue {
   deleteGroup: (ids: string[]) => void;
   payPartial: (id: string, value: number) => void;
   payFull: (ids: string[]) => void;
-  addCategory: (name: string) => void;
+  addCategory: (name: string, icon?: string) => void;
   updateCategory: (id: string, patch: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
   reserveDeposit: (value: number) => void;
@@ -206,14 +206,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const addCategory = useCallback((name: string) => {
-    setEntries((p) => p);
+  const addCategory = useCallback((name: string, icon?: string) => {
     setCategories((prev) => [
       ...prev,
       {
         id: uid(),
         name,
         color: CATEGORY_COLORS[prev.length % CATEGORY_COLORS.length] ?? "#34d399",
+        icon: icon || "Tag",
       },
     ]);
   }, []);
@@ -240,7 +240,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCategories((prev) =>
         prev.some((c) => c.id === catId)
           ? prev
-          : [...prev, { id: catId, name: "Reserva", color: "#22d3ee" }],
+          : [...prev, { id: catId, name: "Reserva", color: "#22d3ee", icon: "PiggyBank" }],
       );
       setEntries((prev) => [
         ...prev,

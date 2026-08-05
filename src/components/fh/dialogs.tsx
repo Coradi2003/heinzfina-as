@@ -19,11 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CurrencyInput } from "./CurrencyInput";
+import { IconPicker, SelectedIcon, SelectedIconSmall } from "./IconPicker";
 import { formatCents, formatDate, MONTHS, todayISO } from "@/lib/money";
 import { useStore } from "@/lib/store";
 import type { Category, Entry, Scope } from "@/lib/types";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowUpRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus, Pencil, Plus, Trash2 } from "lucide-react";
+import { suggestIcon } from "@/lib/icons";
 
 interface BaseProps {
   open: boolean;
@@ -58,6 +60,7 @@ function CategorySelect({
           <SelectItem key={c.id} value={c.id}>
             <span className="flex items-center gap-2">
               <span className="size-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+              <SelectedIconSmall name={c.icon} />
               {c.name}
             </span>
           </SelectItem>
@@ -295,7 +298,14 @@ export function ReserveWithdrawDialog({ open, onOpenChange }: BaseProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl">
         <DialogHeader>
-          <DialogTitle>Retirar da reserva</DialogTitle>
+          <DialogTitle>
+            <span className="flex items-center gap-2.5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-destructive/15 text-destructive">
+                <Minus className="size-4" />
+              </span>
+              Retirar da reserva
+            </span>
+          </DialogTitle>
           <DialogDescription>
             Disponível: {formatCents(reserve)} — gera uma despesa com o destino informado, sem
             alterar o saldo principal.
@@ -327,6 +337,7 @@ export function ReserveWithdrawDialog({ open, onOpenChange }: BaseProps) {
         </div>
         <DialogFooter>
           <Button
+            variant="destructive"
             className="h-12 w-full rounded-2xl"
             onClick={() => {
               if (!amount || !destination.trim()) {
@@ -353,8 +364,21 @@ export function ReserveWithdrawDialog({ open, onOpenChange }: BaseProps) {
 export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
   const { categories, addCategory, updateCategory, deleteCategory } = useStore();
   const [name, setName] = useState("");
+  const [icon, setIcon] = useState("Tag");
+  const [iconTouched, setIconTouched] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [editIcon, setEditIcon] = useState("Tag");
+
+  const applyNameSuggestion = (raw: string) => {
+    setName(raw);
+    if (!iconTouched) setIcon(suggestIcon(raw));
+  };
+
+  const onPick = (i: string) => {
+    setIcon(i);
+    setIconTouched(true);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -363,64 +387,90 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
           <DialogTitle>Categorias</DialogTitle>
           <DialogDescription>Usadas em rendas, despesas, filtros e relatórios.</DialogDescription>
         </DialogHeader>
-        <div className="flex gap-2">
-          <Input
-            className="h-12 rounded-2xl bg-secondary/60"
-            placeholder="Nova categoria"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Button
-            size="icon"
-            className="size-12 shrink-0 rounded-2xl"
-            onClick={() => {
-              if (!name.trim()) return;
-              addCategory(name.trim());
-              setName("");
-            }}
-          >
-            <Plus />
-          </Button>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              className="h-12 rounded-2xl bg-secondary/60"
+              placeholder="Nova categoria"
+              value={name}
+              onChange={(e) => applyNameSuggestion(e.target.value)}
+            />
+            <Button
+              size="icon"
+              className="size-12 shrink-0 rounded-2xl"
+              onClick={() => {
+                if (!name.trim()) return;
+                addCategory(name.trim(), icon);
+                setName("");
+                setIcon("Tag");
+                setIconTouched(false);
+              }}
+            >
+              <Plus />
+            </Button>
+          </div>
+          <IconPicker value={icon} onChange={onPick} name={name} />
         </div>
         <div className="space-y-2">
           {categories.map((c) => (
             <div
               key={c.id}
-              className="flex items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3"
+              className="space-y-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3"
             >
-              <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
-              {editing === c.id ? (
-                <Input
-                  className="h-9 rounded-xl"
-                  value={editName}
-                  autoFocus
-                  onChange={(e) => setEditName(e.target.value)}
-                  onBlur={() => {
-                    if (editName.trim()) updateCategory(c.id, { name: editName.trim() });
-                    setEditing(null);
+              <div className="flex items-center gap-3">
+                <span
+                  className="grid size-8 shrink-0 place-items-center rounded-xl"
+                  style={{ backgroundColor: `${c.color}22`, color: c.color }}
+                >
+                  <SelectedIcon name={c.icon} />
+                </span>
+                {editing === c.id ? (
+                  <Input
+                    className="h-9 flex-1 rounded-xl"
+                    value={editName}
+                    autoFocus
+                    onChange={(e) => setEditName(e.target.value)}
+                    onBlur={() => {
+                      if (editName.trim()) updateCategory(c.id, { name: editName.trim() });
+                    }}
+                  />
+                ) : (
+                  <span className="min-w-0 flex-1 truncate text-sm">{c.name}</span>
+                )}
+                <button
+                  className="text-muted-foreground transition-colors hover:text-primary"
+                  onClick={() => {
+                    if (editing === c.id) {
+                      setEditing(null);
+                      return;
+                    }
+                    setEditing(c.id);
+                    setEditName(c.name);
+                    setEditIcon(c.icon ?? "Tag");
                   }}
+                >
+                  <Pencil className="size-4" />
+                </button>
+                <button
+                  className="text-muted-foreground transition-colors hover:text-destructive"
+                  onClick={() => {
+                    deleteCategory(c.id);
+                    toast.success("Categoria excluída");
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+              {editing === c.id && (
+                <IconPicker
+                  value={editIcon}
+                  onChange={(i) => {
+                    setEditIcon(i);
+                    updateCategory(c.id, { icon: i });
+                  }}
+                  name={editName}
                 />
-              ) : (
-                <span className="min-w-0 flex-1 truncate text-sm">{c.name}</span>
               )}
-              <button
-                className="text-muted-foreground transition-colors hover:text-primary"
-                onClick={() => {
-                  setEditing(c.id);
-                  setEditName(c.name);
-                }}
-              >
-                <Pencil className="size-4" />
-              </button>
-              <button
-                className="text-muted-foreground transition-colors hover:text-destructive"
-                onClick={() => {
-                  deleteCategory(c.id);
-                  toast.success("Categoria excluída");
-                }}
-              >
-                <Trash2 className="size-4" />
-              </button>
             </div>
           ))}
         </div>
