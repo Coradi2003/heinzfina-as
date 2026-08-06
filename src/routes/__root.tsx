@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerServiceWorker } from "../lib/pwa";
 import { Toaster } from "@/components/ui/sonner";
+import { InstallPrompt } from "@/components/fh/InstallPrompt";
 
 function NotFoundComponent() {
   return (
@@ -80,8 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       {
         name: "viewport",
-        content:
-          "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5",
       },
       { title: "Família Heinz — Controle Financeiro" },
       {
@@ -150,6 +150,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <InstallPrompt />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );
