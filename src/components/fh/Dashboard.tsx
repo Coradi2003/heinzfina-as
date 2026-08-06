@@ -12,6 +12,7 @@ import {
   Minus,
   PiggyBank,
   Plus,
+  Tags,
   User,
   Wallet,
 } from "lucide-react";
@@ -30,6 +31,7 @@ import { globalTotals, scopeTotals, useStore } from "@/lib/store";
 import { annualReportPdf, monthlyReportPdf } from "@/lib/pdf";
 import type { Category, Entry, Scope } from "@/lib/types";
 import {
+  CategoriesDialog,
   DetailDialog,
   EditEntryDialog,
   ExpenseDialog,
@@ -418,6 +420,15 @@ export function Dashboard() {
             </p>
           </div>
         </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="shrink-0 rounded-xl"
+          onClick={() => setDialog("categories")}
+        >
+          <Tags className="size-4" />
+          <span className="hidden sm:inline">Categorias</span>
+        </Button>
       </header>
 
       {/* Bolhas */}
@@ -710,6 +721,10 @@ export function Dashboard() {
       <ReserveWithdrawDialog
         open={dialog === "reserve-out"}
         onOpenChange={(v) => setDialog(v ? "reserve-out" : null)}
+      />
+      <CategoriesDialog
+        open={dialog === "categories"}
+        onOpenChange={(v) => setDialog(v ? "categories" : null)}
       />
       <ReportDialog
         open={dialog === "report-monthly"}
