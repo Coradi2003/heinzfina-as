@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -58,6 +59,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [reserve, setReserve] = useState(0);
+  const entriesSaveQueue = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     let alive = true;
@@ -79,7 +81,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (ready) void supabaseRepository.saveEntries(entries);
+    if (!ready) return;
+    const snapshot = entries;
+    entriesSaveQueue.current = entriesSaveQueue.current
+      .catch(() => undefined)
+      .then(() => supabaseRepository.saveEntries(snapshot));
   }, [entries, ready]);
   useEffect(() => {
     if (ready) void supabaseRepository.saveCategories(categories);
