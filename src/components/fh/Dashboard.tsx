@@ -12,8 +12,6 @@ import {
   Minus,
   PiggyBank,
   Plus,
-  Sparkles,
-  Tags,
   User,
   Wallet,
 } from "lucide-react";
@@ -32,7 +30,6 @@ import { globalTotals, scopeTotals, useStore } from "@/lib/store";
 import { annualReportPdf, monthlyReportPdf } from "@/lib/pdf";
 import type { Category, Entry, Scope } from "@/lib/types";
 import {
-  CategoriesDialog,
   DetailDialog,
   EditEntryDialog,
   ExpenseDialog,
@@ -44,7 +41,7 @@ import {
   ReserveWithdrawDialog,
 } from "./dialogs";
 import { DonutChart } from "./DonutChart";
-import { SelectedIcon, SelectedIconSmall } from "./IconPicker";
+import { SelectedIcon } from "./IconPicker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -154,6 +151,42 @@ function FilterChip({
   );
 }
 
+function CollapsibleSection({
+  label,
+  open,
+  onToggle,
+  children,
+  className,
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={className}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="surface flex w-full items-center justify-between rounded-3xl px-5 py-4 text-left transition-colors hover:bg-secondary/40"
+      >
+        <span className="font-display text-sm font-bold">{label}</span>
+        <ChevronDown
+          className={cn(
+            "size-5 text-muted-foreground transition-transform duration-200",
+            open && "rotate-180 text-primary",
+          )}
+        />
+      </button>
+      {open && (
+        <div className="animate-in fade-in slide-in-from-top-2 duration-200">{children}</div>
+      )}
+    </section>
+  );
+}
+
 /**
  * Menu da linha da tabela que só abre com duplo toque (evita abrir sem querer
  * ao rolar a página). O primeiro toque apenas "prepara"; o segundo, em até
@@ -202,8 +235,7 @@ export function Dashboard() {
 
   const [scopeFilter, setScopeFilter] = useState<Scope[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter[]>([]);
-  const [catFilter, setCatFilter] = useState<string[]>([]);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<string[]>([]);
 
   const [dialog, setDialog] = useState<string | null>(null);
   const [dialogScope, setDialogScope] = useState<Scope>("empresa");
@@ -229,7 +261,6 @@ export function Dashboard() {
     const filtered = entries.filter((e) => {
       if (e.type !== "expense") return false;
       if (scopeFilter.length && !scopeFilter.includes(e.scope)) return false;
-      if (catFilter.length && !catFilter.includes(e.categoryId)) return false;
       if (statusFilter.length) {
         const paidOff = e.paid >= e.amount;
         const wantPago = statusFilter.includes("pago");
@@ -279,10 +310,17 @@ export function Dashboard() {
         };
       })
       .sort((a, b) => a.nextDue.localeCompare(b.nextDue));
-  }, [entries, scopeFilter, statusFilter, catFilter, month]);
+  }, [entries, scopeFilter, statusFilter, month]);
 
   const toggle = <T,>(arr: T[], v: T, set: (x: T[]) => void) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+
+  const toggleSection = (section: string) =>
+    setOpenSections((current) =>
+      current.includes(section)
+        ? current.filter((item) => item !== section)
+        : [...current, section],
+    );
 
   const shiftMonth = (delta: number) => {
     const [y, m] = month.split("-").map(Number);
@@ -380,15 +418,6 @@ export function Dashboard() {
             </p>
           </div>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="shrink-0 rounded-xl"
-          onClick={() => setDialog("categories")}
-        >
-          <Tags className="size-4" />
-          <span className="hidden sm:inline">Categorias</span>
-        </Button>
       </header>
 
       {/* Bolhas */}
@@ -409,8 +438,16 @@ export function Dashboard() {
             </span>
           </div>
         </Bubble>
+      </section>
+
+      <CollapsibleSection
+        label="Reserva"
+        open={openSections.includes("reserve")}
+        onToggle={() => toggleSection("reserve")}
+        className="mt-3"
+      >
         <Bubble
-          className="col-span-2"
+          className="mt-3"
           label="Reserva"
           value={formatCents(reserve)}
           icon={<PiggyBank className="size-4" />}
@@ -433,7 +470,7 @@ export function Dashboard() {
             </Button>
           </div>
         </Bubble>
-      </section>
+      </CollapsibleSection>
 
       {/* Seletor de mês */}
       <div className="surface mt-5 flex items-center justify-between rounded-3xl px-3 py-2">
@@ -457,81 +494,67 @@ export function Dashboard() {
       </div>
 
       {/* Gráfico donut */}
-      <DonutChart
-        entries={entries}
-        categories={categories}
-        month={month}
-        scopeFilter={scopeFilter}
-      />
+      <CollapsibleSection
+        label="Distribuição por categoria"
+        open={openSections.includes("distribution")}
+        onToggle={() => toggleSection("distribution")}
+        className="mt-5"
+      >
+        <DonutChart
+          entries={entries}
+          categories={categories}
+          month={month}
+          scopeFilter={scopeFilter}
+        />
+      </CollapsibleSection>
 
       <div className="mt-5 grid gap-4">
-        <ScopePanel scope="empresa" />
-        <ScopePanel scope="pessoal" />
+        <CollapsibleSection
+          label="Empresa"
+          open={openSections.includes("empresa")}
+          onToggle={() => toggleSection("empresa")}
+        >
+          <div className="mt-3">
+            <ScopePanel scope="empresa" />
+          </div>
+        </CollapsibleSection>
+        <CollapsibleSection
+          label="Pessoal"
+          open={openSections.includes("pessoal")}
+          onToggle={() => toggleSection("pessoal")}
+        >
+          <div className="mt-3">
+            <ScopePanel scope="pessoal" />
+          </div>
+        </CollapsibleSection>
       </div>
 
       {/* Filtros */}
-      <section className="mt-6">
-        <button
-          onClick={() => setFiltersOpen((v) => !v)}
-          className="flex w-full items-center gap-2 text-left text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+      <section className="no-scrollbar mt-6 flex gap-2 overflow-x-auto pb-1">
+        <FilterChip
+          active={scopeFilter.includes("empresa")}
+          onClick={() => toggle(scopeFilter, "empresa", setScopeFilter)}
         >
-          <Sparkles className="size-3.5" /> Filtros
-          {scopeFilter.length + statusFilter.length + catFilter.length > 0 && (
-            <span className="grid size-5 place-items-center rounded-full bg-primary/15 text-[10px] font-bold text-primary tabular-nums">
-              {scopeFilter.length + statusFilter.length + catFilter.length}
-            </span>
-          )}
-          <ChevronDown
-            className={cn(
-              "ml-auto size-4 transition-transform duration-200",
-              filtersOpen && "rotate-180",
-            )}
-          />
-        </button>
-        {filtersOpen && (
-          <>
-            <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
-              <FilterChip
-                active={scopeFilter.includes("empresa")}
-                onClick={() => toggle(scopeFilter, "empresa", setScopeFilter)}
-              >
-                Empresa
-              </FilterChip>
-              <FilterChip
-                active={scopeFilter.includes("pessoal")}
-                onClick={() => toggle(scopeFilter, "pessoal", setScopeFilter)}
-              >
-                Pessoal
-              </FilterChip>
-              <FilterChip
-                active={statusFilter.includes("pago")}
-                onClick={() => toggle(statusFilter, "pago", setStatusFilter)}
-              >
-                Pago
-              </FilterChip>
-              <FilterChip
-                active={statusFilter.includes("apagar")}
-                onClick={() => toggle(statusFilter, "apagar", setStatusFilter)}
-              >
-                A pagar
-              </FilterChip>
-            </div>
-            <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-1">
-              {categories.map((c) => (
-                <FilterChip
-                  key={c.id}
-                  active={catFilter.includes(c.id)}
-                  onClick={() => toggle(catFilter, c.id, setCatFilter)}
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    <SelectedIconSmall name={c.icon} />
-                    {c.name}
-                  </span>
-                </FilterChip>
-              ))}
-            </div>
-          </>
-        )}
+          Empresa
+        </FilterChip>
+        <FilterChip
+          active={scopeFilter.includes("pessoal")}
+          onClick={() => toggle(scopeFilter, "pessoal", setScopeFilter)}
+        >
+          Pessoal
+        </FilterChip>
+        <FilterChip
+          active={statusFilter.includes("pago")}
+          onClick={() => toggle(statusFilter, "pago", setStatusFilter)}
+        >
+          Pago
+        </FilterChip>
+        <FilterChip
+          active={statusFilter.includes("apagar")}
+          onClick={() => toggle(statusFilter, "apagar", setStatusFilter)}
+        >
+          A pagar
+        </FilterChip>
       </section>
 
       {/* Lista principal */}
@@ -687,10 +710,6 @@ export function Dashboard() {
       <ReserveWithdrawDialog
         open={dialog === "reserve-out"}
         onOpenChange={(v) => setDialog(v ? "reserve-out" : null)}
-      />
-      <CategoriesDialog
-        open={dialog === "categories"}
-        onOpenChange={(v) => setDialog(v ? "categories" : null)}
       />
       <ReportDialog
         open={dialog === "report-monthly"}
