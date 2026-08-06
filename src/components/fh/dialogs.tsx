@@ -569,7 +569,7 @@ export function EditEntryDialog({
   onOpenChange,
   entry,
 }: BaseProps & { entry: Entry | null }) {
-  const { categories, updateEntry, deleteEntry } = useStore();
+  const { categories, entries, updateEntry, deleteEntry, deleteGroup } = useStore();
   const [draft, setDraft] = useState<Entry | null>(entry);
 
   if (draft?.id !== entry?.id) setDraft(entry);
@@ -633,8 +633,16 @@ export function EditEntryDialog({
             variant="ghost"
             className="h-12 rounded-2xl text-destructive"
             onClick={() => {
-              deleteEntry(draft.id);
-              toast.success("Lançamento excluído");
+              const groupIds = draft.groupId
+                ? entries.filter((e) => e.groupId === draft.groupId).map((e) => e.id)
+                : [];
+              if (groupIds.length > 0) {
+                deleteGroup(groupIds);
+                toast.success(`${groupIds.length} lançamentos excluídos`);
+              } else {
+                deleteEntry(draft.id);
+                toast.success("Lançamento excluído");
+              }
               onOpenChange(false);
             }}
           >
