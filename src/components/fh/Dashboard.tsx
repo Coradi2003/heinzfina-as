@@ -260,6 +260,7 @@ export function Dashboard() {
   const catIcon = (id: string) => categories.find((c) => c.id === id)?.icon;
 
   const groups = useMemo(() => {
+    const showPaidValues = statusFilter.includes("pago") && !statusFilter.includes("apagar");
     const filtered = entries.filter((e) => {
       if (e.type !== "expense") return false;
       if (scopeFilter.length && !scopeFilter.includes(e.scope)) return false;
@@ -287,7 +288,10 @@ export function Dashboard() {
         const sorted = [...list].sort((a, b) => a.date.localeCompare(b.date));
         const pending = sorted.filter((e) => e.paid < e.amount);
         const nextDue = (pending[0] ?? sorted[0])!.date;
-        const parcelSum = sorted.reduce((acc, e) => acc + Math.max(0, e.amount - e.paid), 0);
+        const parcelSum = sorted.reduce(
+          (acc, e) => acc + (showPaidValues ? e.paid : Math.max(0, e.amount - e.paid)),
+          0,
+        );
         const hasInstallment = sorted.some((e) => e.installmentCount);
         const hasFixed = sorted.some((e) => e.fixed);
         const totalValue = hasInstallment
@@ -573,7 +577,11 @@ export function Dashboard() {
         <div className="grid grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid-cols-[minmax(0,1.6fr)_min-content_min-content_min-content]">
           <span>Categoria</span>
           <span className="hidden sm:block">Vencimento</span>
-          <span className="text-right">Pendente</span>
+          <span className="text-right">
+            {statusFilter.includes("pago") && !statusFilter.includes("apagar")
+              ? "Pago"
+              : "Pendente"}
+          </span>
           <span className="hidden text-right sm:block">Total</span>
         </div>
 

@@ -36,7 +36,6 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { suggestIcon } from "@/lib/icons";
 
 interface BaseProps {
   open: boolean;
@@ -454,10 +453,7 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
                 className="h-12 rounded-2xl bg-secondary/60 pl-10 pr-4"
                 placeholder="Nova categoria"
                 value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setIcon(suggestIcon(e.target.value));
-                }}
+                onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") submit();
                 }}
@@ -473,8 +469,9 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
               <Plus />
             </Button>
           </div>
+          <IconPicker value={icon} onChange={setIcon} />
           <p className="px-1 text-xs text-muted-foreground">
-            O ícone é sugerido pelo nome. Para trocar depois, toque no lápis.
+            Escolha o desenho que melhor representa a nova categoria.
           </p>
         </div>
         <div className="space-y-2">
@@ -534,7 +531,6 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
                     setEditIcon(i);
                     updateCategory(c.id, { icon: i });
                   }}
-                  name={editName}
                 />
               )}
             </div>
