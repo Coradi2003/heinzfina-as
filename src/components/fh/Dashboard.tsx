@@ -570,13 +570,12 @@ export function Dashboard() {
             });
             setDialog("detail");
           };
-          const isOverdue = entries.some(
-            (e) =>
-              e.type === "expense" &&
-              e.scope === g.scope &&
-              e.categoryId === g.categoryId &&
-              e.paid < e.amount &&
-              e.date < todayISO(),
+          const today = todayISO();
+          const warningDate = new Date(`${today}T12:00:00`);
+          warningDate.setDate(warningDate.getDate() + 2);
+          const warningLimit = warningDate.toISOString().slice(0, 10);
+          const isDueSoon = g.entries.some(
+            (e) => e.paid < e.amount && e.date >= today && e.date <= warningLimit,
           );
           return (
             <div
@@ -651,7 +650,7 @@ export function Dashboard() {
                   </>
                 }
               />
-              {isOverdue && (
+              {isDueSoon && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -660,7 +659,7 @@ export function Dashboard() {
                     openDetail();
                   }}
                   className="absolute left-11 top-2 z-10 grid size-7 place-items-center rounded-full bg-destructive/15 text-destructive"
-                  aria-label="Conta em atraso"
+                  aria-label="Conta vence em até 2 dias"
                 >
                   <AlertTriangle className="size-3.5" />
                 </button>

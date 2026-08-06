@@ -203,7 +203,9 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
           <DialogDescription>{scope === "empresa" ? "Empresa" : "Pessoal"}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <Field label="Valor total">
+          <Field
+            label={fixed ? "Valor mensal" : (installments ?? 1) > 1 ? "Valor da parcela" : "Valor"}
+          >
             <CurrencyInput value={amount} onChange={setAmount} autoFocus />
           </Field>
           <Field label="Categoria">
@@ -237,7 +239,8 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
             />
             {!fixed && (installments ?? 1) > 1 && amount > 0 && (
               <p className="text-xs text-destructive">
-                {installments}x de {formatCents(Math.floor(amount / installments!))}
+                {installments}x de {formatCents(amount)} · Total:{" "}
+                {formatCents(amount * installments!)}
               </p>
             )}
           </Field>
@@ -727,9 +730,13 @@ export function DetailDialog({
       ? "Despesa fixa"
       : null;
 
-  const labelOf = (e: Entry) =>
-    e.description ||
-    (e.installmentCount ? `Parcela ${e.installmentIndex}/${e.installmentCount}` : "Lançamento");
+  const labelOf = (e: Entry) => {
+    const installmentLabel = e.installmentCount
+      ? `Parcela ${e.installmentIndex}/${e.installmentCount}`
+      : null;
+    if (e.description && installmentLabel) return `${e.description} · ${installmentLabel}`;
+    return e.description || installmentLabel || "Lançamento";
+  };
 
   const statusOf = (e: Entry): "Pago" | "Parcial" | "Em aberto" =>
     e.paid >= e.amount ? "Pago" : e.paid > 0 ? "Parcial" : "Em aberto";

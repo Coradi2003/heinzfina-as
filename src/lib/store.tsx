@@ -16,7 +16,7 @@ export interface NewExpenseInput {
   scope: Scope;
   categoryId: string;
   description: string;
-  /** valor total informado, em centavos */
+  /** valor do lançamento ou de cada parcela, em centavos */
   amount: number;
   installments: number;
   fixed: boolean;
@@ -120,18 +120,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     } else if (input.installments > 1) {
       const n = input.installments;
-      const part = Math.floor(input.amount / n);
-      const rest = input.amount - part * n;
       for (let i = 0; i < n; i++) {
         created.push({
           ...base,
           id: uid(),
-          amount: part + (i === 0 ? rest : 0),
+          amount: input.amount,
           date: addMonths(input.dueDate, i),
           fixed: false,
           installmentIndex: i + 1,
           installmentCount: n,
-          totalAmount: input.amount,
+          totalAmount: input.amount * n,
           groupId,
         });
       }
