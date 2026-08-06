@@ -323,7 +323,10 @@ export function globalTotals(entries: Entry[], month: string) {
     if (e.fromReserve) continue;
     if (monthKey(e.date) !== month) continue;
     if (e.type === "income") income += e.paid;
-    else outcome += e.amount;
+    else {
+      outcome += e.amount;
+      income += e.paid;
+    }
   }
   return { income, outcome, balance: income - outcome };
 }
