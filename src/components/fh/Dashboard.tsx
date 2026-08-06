@@ -566,10 +566,18 @@ export function Dashboard() {
             });
             setDialog("detail");
           };
+          const isOverdue = entries.some(
+            (e) =>
+              e.type === "expense" &&
+              e.scope === g.scope &&
+              e.categoryId === g.categoryId &&
+              e.paid < e.amount &&
+              e.date < todayISO(),
+          );
           return (
             <div
               key={g.key}
-              className="border-b border-border/60 transition-colors last:border-0 hover:bg-secondary/40"
+              className="relative border-b border-border/60 transition-colors last:border-0 hover:bg-secondary/40"
             >
               <RowMenu
                 trigger={
@@ -584,23 +592,8 @@ export function Dashboard() {
                       >
                         <SelectedIcon name={catIcon(g.categoryId)} />
                       </span>
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <span className="block min-w-0 flex-1 truncate text-sm font-medium">
-                          {catName(g.categoryId)}
-                        </span>
-                        {entries.some(
-                          (e) =>
-                            e.type === "expense" &&
-                            e.scope === g.scope &&
-                            e.categoryId === g.categoryId &&
-                            e.paid < e.amount &&
-                            e.date < todayISO(),
-                        ) && (
-                          <AlertTriangle
-                            className="size-4 shrink-0 text-destructive"
-                            aria-label="Conta em atraso"
-                          />
-                        )}
+                      <span className="block min-w-0 flex-1 truncate text-sm font-medium">
+                        {catName(g.categoryId)}
                       </span>
                     </span>
                     <span className="hidden text-sm text-muted-foreground sm:block">
@@ -654,6 +647,20 @@ export function Dashboard() {
                   </>
                 }
               />
+              {isOverdue && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openDetail();
+                  }}
+                  className="absolute left-11 top-2 z-10 grid size-7 place-items-center rounded-full bg-destructive/15 text-destructive"
+                  aria-label="Conta em atraso"
+                >
+                  <AlertTriangle className="size-3.5" />
+                </button>
+              )}
             </div>
           );
         })}
