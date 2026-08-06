@@ -176,7 +176,7 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
     });
     toast.success(
       fixed
-        ? "Despesa fixa criada para todos os meses do ano"
+        ? "Despesa fixa criada do mês selecionado até dezembro"
         : (installments ?? 1) > 1
           ? `${installments} parcelas criadas`
           : "Despesa cadastrada",
@@ -724,7 +724,7 @@ export function DetailDialog({
   const parcelInfo = entries.find((e) => e.installmentCount)
     ? `${entries.find((e) => e.installmentCount)!.installmentCount}x`
     : entries.some((e) => e.fixed)
-      ? `${entries.length}x`
+      ? "Despesa fixa"
       : null;
 
   const labelOf = (e: Entry) =>
@@ -734,15 +734,21 @@ export function DetailDialog({
   const statusOf = (e: Entry): "Pago" | "Parcial" | "Em aberto" =>
     e.paid >= e.amount ? "Pago" : e.paid > 0 ? "Parcial" : "Em aberto";
 
-  const installmentGroups = new Map<string, Entry[]>();
+  const compactGroups = new Map<string, Entry[]>();
   const standaloneEntries: Entry[] = [];
   for (const entry of entries) {
-    if (entry.installmentCount && entry.groupId) {
-      const group = installmentGroups.get(entry.groupId);
+    if ((entry.installmentCount || entry.fixed) && entry.groupId) {
+      const group = compactGroups.get(entry.groupId);
       if (group) group.push(entry);
-      else installmentGroups.set(entry.groupId, [entry]);
+      else compactGroups.set(entry.groupId, [entry]);
     } else {
       standaloneEntries.push(entry);
+    }
+  }
+  for (const [groupId, group] of compactGroups) {
+    if (group.length === 1) {
+      standaloneEntries.push(group[0]!);
+      compactGroups.delete(groupId);
     }
   }
 
@@ -802,20 +808,21 @@ export function DetailDialog({
         )}
 
         <div className="space-y-2">
-          {[...installmentGroups.entries()].map(([groupId, rawGroup]) => {
+          {[...compactGroups.entries()].map(([groupId, rawGroup]) => {
             const groupEntries = [...rawGroup].sort(
               (a, b) =>
                 (a.installmentIndex ?? 0) - (b.installmentIndex ?? 0) ||
                 a.date.localeCompare(b.date),
             );
             const first = groupEntries[0]!;
-            const installmentCount = first.installmentCount ?? groupEntries.length;
+            const isFixed = first.fixed;
+            const itemCount = first.installmentCount ?? groupEntries.length;
             const groupTotal = groupEntries.reduce((acc, entry) => acc + entry.amount, 0);
             const groupPaid = groupEntries.reduce((acc, entry) => acc + entry.paid, 0);
             const groupPending = Math.max(0, groupTotal - groupPaid);
             const paidCount = groupEntries.filter((entry) => entry.paid >= entry.amount).length;
             const nextEntry = groupEntries.find((entry) => entry.paid < entry.amount);
-            const progress = installmentCount > 0 ? (paidCount / installmentCount) * 100 : 0;
+            const progress = itemCount > 0 ? (paidCount / itemCount) * 100 : 0;
             const expanded = expandedGroups.includes(groupId);
             const description = first.description || category?.name || "Compra parcelada";
 
@@ -829,13 +836,17 @@ export function DetailDialog({
                     <div className="min-w-0">
                       <p className="truncate font-display text-base font-semibold">{description}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {installmentCount}x de {formatCents(first.amount)}
+                        {isFixed
+                          ? `Despesa fixa · ${formatCents(first.amount)} por mês`
+                          : `${itemCount}x de ${formatCents(first.amount)}`}
                       </p>
                     </div>
                     <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
-                      {paidCount === installmentCount
+                      {paidCount === itemCount
                         ? "Quitado"
-                        : `${paidCount}/${installmentCount}`}
+                        : isFixed
+                          ? "Fixa"
+                          : `${paidCount}/${itemCount}`}
                     </span>
                   </div>
 
@@ -843,12 +854,14 @@ export function DetailDialog({
                     <Progress value={progress} className="h-2 bg-border" />
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs">
                       <span className="font-medium text-foreground">
-                        {paidCount} / {installmentCount} parcelas pagas
+                        {paidCount} / {itemCount} {isFixed ? "meses pagos" : "parcelas pagas"}
                       </span>
                       <span className="text-muted-foreground">
                         {nextEntry
                           ? `Próximo vencimento: ${formatDate(nextEntry.date)}`
-                          : "Todas as parcelas foram pagas"}
+                          : isFixed
+                            ? "Todos os meses foram pagos"
+                            : "Todas as parcelas foram pagas"}
                       </span>
                     </div>
                   </div>
@@ -880,7 +893,13 @@ export function DetailDialog({
                         expanded && "rotate-180",
                       )}
                     />
-                    {expanded ? "Ocultar parcelas" : "Ver parcelas"}
+                    {expanded
+                      ? isFixed
+                        ? "Ocultar meses"
+                        : "Ocultar parcelas"
+                      : isFixed
+                        ? "Ver meses"
+                        : "Ver parcelas"}
                   </button>
                 </div>
 
@@ -893,8 +912,10 @@ export function DetailDialog({
                           key={entry.id}
                           className="flex items-center gap-3 border-b border-border/60 py-3 last:border-0"
                         >
-                          <span className="w-12 shrink-0 text-sm font-semibold tabular-nums">
-                            {entry.installmentIndex}/{entry.installmentCount}
+                          <span className="w-20 shrink-0 text-sm font-semibold tabular-nums">
+                            {isFixed
+                              ? MONTHS[Number(entry.date.slice(5, 7)) - 1]
+                              : `${entry.installmentIndex}/${entry.installmentCount}`}
                           </span>
                           <span className="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm">
                             {formatDate(entry.date)}

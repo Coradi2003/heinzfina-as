@@ -561,7 +561,11 @@ export function Dashboard() {
               category: detailCategory,
               scope: g.scope,
               entries: entries.filter(
-                (e) => e.type === "expense" && e.scope === g.scope && e.categoryId === g.categoryId,
+                (e) =>
+                  e.type === "expense" &&
+                  e.scope === g.scope &&
+                  e.categoryId === g.categoryId &&
+                  monthKey(e.date) === month,
               ),
             });
             setDialog("detail");

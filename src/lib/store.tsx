@@ -103,15 +103,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
 
     if (input.fixed) {
-      const year = Number(input.dueDate.slice(0, 4));
-      const day = input.dueDate.slice(8, 10);
-      for (let month = 0; month < 12; month++) {
-        const iso = `${year}-${String(month + 1).padStart(2, "0")}-${day}`;
+      const startMonth = Number(input.dueDate.slice(5, 7));
+      const remainingMonths = 12 - startMonth;
+      for (let monthOffset = 0; monthOffset <= remainingMonths; monthOffset++) {
         created.push({
           ...base,
           id: uid(),
           amount: input.amount,
-          date: iso,
+          date: addMonths(input.dueDate, monthOffset),
           fixed: true,
           installmentIndex: null,
           installmentCount: null,
