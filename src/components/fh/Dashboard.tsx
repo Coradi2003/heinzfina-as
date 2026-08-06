@@ -166,7 +166,7 @@ function RowMenu({ trigger, content }: { trigger: ReactNode; content: ReactNode 
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
-          className="col-span-2 flex items-center justify-end gap-2 sm:col-span-3 sm:grid sm:grid-cols-3"
+          className="flex items-center justify-end gap-2 sm:col-span-3 sm:grid sm:grid-cols-3"
           onPointerDown={(e) => e.preventDefault()}
           onDoubleClick={(e) => e.preventDefault()}
           onClick={() => {
