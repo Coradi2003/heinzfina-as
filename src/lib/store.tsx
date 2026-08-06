@@ -322,7 +322,7 @@ export function globalTotals(entries: Entry[]) {
   for (const e of entries) {
     if (e.fromReserve) continue;
     if (e.type === "income") income += e.paid;
-    else outcome += e.paid;
+    else outcome += e.amount;
   }
   return { income, outcome, balance: income - outcome };
 }
