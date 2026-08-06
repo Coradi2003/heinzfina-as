@@ -20,6 +20,7 @@ export interface NewExpenseInput {
   amount: number;
   installments: number;
   fixed: boolean;
+  paidUpfront: boolean;
   dueDate: string;
 }
 
@@ -97,7 +98,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       scope: input.scope,
       categoryId: input.categoryId,
       description: input.description,
-      paid: 0,
+      paid: input.paidUpfront ? input.amount : 0,
       fromReserve: false,
       createdAt: now,
     };
@@ -320,10 +321,7 @@ export function globalTotals(entries: Entry[], month: string) {
     if (e.fromReserve) continue;
     if (monthKey(e.date) !== month) continue;
     if (e.type === "income") income += e.paid;
-    else {
-      outcome += e.amount;
-      income += e.paid;
-    }
+    else outcome += e.amount;
   }
   return { income, outcome, balance: income - outcome };
 }

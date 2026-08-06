@@ -158,6 +158,7 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
   const [description, setDescription] = useState("");
   const [installments, setInstallments] = useState<number | null>(null);
   const [fixed, setFixed] = useState(false);
+  const [paidUpfront, setPaidUpfront] = useState(false);
   const [dueDate, setDueDate] = useState(todayISO());
 
   const save = () => {
@@ -170,21 +171,25 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
       categoryId,
       description,
       amount,
-      installments: fixed ? 1 : (installments ?? 1),
+      installments: fixed || paidUpfront ? 1 : (installments ?? 1),
       fixed,
+      paidUpfront,
       dueDate,
     });
     toast.success(
-      fixed
-        ? "Despesa fixa criada do mês selecionado até dezembro"
-        : (installments ?? 1) > 1
-          ? `${installments} parcelas criadas`
-          : "Despesa cadastrada",
+      paidUpfront
+        ? "Despesa à vista registrada como paga"
+        : fixed
+          ? "Despesa fixa criada do mês selecionado até dezembro"
+          : (installments ?? 1) > 1
+            ? `${installments} parcelas criadas`
+            : "Despesa cadastrada",
     );
     setAmount(0);
     setDescription("");
     setInstallments(null);
     setFixed(false);
+    setPaidUpfront(false);
     onOpenChange(false);
   };
 
@@ -223,7 +228,7 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
               type="number"
               min={1}
               max={120}
-              disabled={fixed}
+              disabled={fixed || paidUpfront}
               placeholder="Ex.: 12"
               className="h-12 rounded-2xl bg-secondary/60"
               value={installments ?? ""}
@@ -237,7 +242,7 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
                 setInstallments(Number.isFinite(n) && n > 0 ? Math.round(n) : null);
               }}
             />
-            {!fixed && (installments ?? 1) > 1 && amount > 0 && (
+            {!fixed && !paidUpfront && (installments ?? 1) > 1 && amount > 0 && (
               <p className="text-xs text-destructive">
                 {installments}x de {formatCents(amount)} · Total:{" "}
                 {formatCents(amount * installments!)}
@@ -245,11 +250,42 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
             )}
           </Field>
           <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
-            <Checkbox checked={fixed} onCheckedChange={(v) => setFixed(Boolean(v))} />
+            <Checkbox
+              checked={fixed}
+              disabled={paidUpfront}
+              onCheckedChange={(v) => {
+                const checked = Boolean(v);
+                setFixed(checked);
+                if (checked) {
+                  setPaidUpfront(false);
+                  setInstallments(null);
+                }
+              }}
+            />
             <span className="text-sm">
               Despesa fixa
               <span className="block text-xs text-muted-foreground">
                 Repete em todos os meses do ano
+              </span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
+            <Checkbox
+              checked={paidUpfront}
+              disabled={fixed}
+              onCheckedChange={(v) => {
+                const checked = Boolean(v);
+                setPaidUpfront(checked);
+                if (checked) {
+                  setFixed(false);
+                  setInstallments(null);
+                }
+              }}
+            />
+            <span className="text-sm">
+              Pago à vista
+              <span className="block text-xs text-muted-foreground">
+                Registra como despesa já paga, sem adicionar renda
               </span>
             </span>
           </label>
