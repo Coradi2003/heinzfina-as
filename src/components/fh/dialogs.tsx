@@ -674,15 +674,35 @@ export function DetailDialog({
   category,
   scope,
   entries,
+  onEdit,
 }: BaseProps & {
   category: Category | null;
   scope: Scope;
   entries: Entry[];
+  onEdit?: (entry: Entry) => void;
 }) {
   const total = entries.reduce((acc, e) => acc + e.amount, 0);
   const paid = entries.reduce((acc, e) => acc + e.paid, 0);
   const pending = total - paid;
   const color = category?.color ?? "#34d399";
+
+  const scopes = [...new Set(entries.map((e) => e.scope))];
+  const scopeLabel =
+    scopes.length > 1
+      ? "Empresa e Pessoal"
+      : scopes.length === 1
+        ? scopes[0] === "pessoal"
+          ? "Pessoal"
+          : "Empresa"
+        : scope === "pessoal"
+          ? "Pessoal"
+          : "Empresa";
+
+  const parcelInfo = entries.find((e) => e.installmentCount)
+    ? `${entries.find((e) => e.installmentCount)!.installmentCount}x`
+    : entries.some((e) => e.fixed)
+      ? `${entries.length}x`
+      : null;
 
   const labelOf = (e: Entry) =>
     e.description ||
@@ -690,6 +710,18 @@ export function DetailDialog({
 
   const statusOf = (e: Entry): "Pago" | "Parcial" | "Em aberto" =>
     e.paid >= e.amount ? "Pago" : e.paid > 0 ? "Parcial" : "Em aberto";
+
+  const EditButton = ({ entry }: { entry: Entry }) => (
+    <button
+      type="button"
+      onClick={() => onEdit?.(entry)}
+      aria-label="Editar lançamento"
+      title="Editar lançamento"
+      className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-primary"
+    >
+      <Pencil className="size-4" />
+    </button>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -707,7 +739,13 @@ export function DetailDialog({
             </span>
           </DialogTitle>
           <DialogDescription>
-            {scope === "empresa" ? "Empresa" : "Pessoal"} • {entries.length} lançamento(s)
+            {scopeLabel} • {entries.length} lançamento(s)
+            {parcelInfo && (
+              <>
+                {" "}
+                • <span className="font-semibold text-foreground">{parcelInfo}</span>
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -723,12 +761,13 @@ export function DetailDialog({
         </div>
 
         {/* Cabeçalho da tabela (desktop) */}
-        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid">
+        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-border px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid">
           <span>Data</span>
           <span>Descrição</span>
           <span>Vencimento</span>
           <span className="text-right">Valor</span>
           <span className="text-right">Status</span>
+          <span className="w-8" />
         </div>
 
         {entries.length === 0 && (
@@ -743,13 +782,16 @@ export function DetailDialog({
             return (
               <div
                 key={e.id}
-                className="rounded-2xl border border-border bg-secondary/40 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-3"
+                className="rounded-2xl border border-border bg-secondary/40 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-3"
               >
                 {/* Mobile */}
                 <div className="sm:hidden">
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate text-sm font-medium">{labelOf(e)}</span>
-                    <DetailStatus status={status} />
+                    <span className="flex items-center gap-2">
+                      <DetailStatus status={status} />
+                      <EditButton entry={e} />
+                    </span>
                   </div>
                   <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span className="tabular-nums">{formatDate(e.date)}</span>
@@ -767,6 +809,9 @@ export function DetailDialog({
                 </span>
                 <span className="hidden justify-self-end sm:block">
                   <DetailStatus status={status} />
+                </span>
+                <span className="hidden justify-self-end sm:block">
+                  <EditButton entry={e} />
                 </span>
               </div>
             );
