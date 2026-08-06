@@ -1,9 +1,22 @@
 import { useMemo, useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Pencil, Trash2 } from "lucide-react";
 import { formatCents, MONTHS, monthKey } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { useStore } from "@/lib/store";
 import { SelectedIconSmall } from "./IconPicker";
+import { CategoryEditDialog } from "./dialogs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import type { Category, Entry, Scope } from "@/lib/types";
 
 type Mode = "despesas" | "receitas";
@@ -29,6 +42,9 @@ export function DonutChart({
 }) {
   const [mode, setMode] = useState<Mode>("despesas");
   const [selected, setSelected] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<Category | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const { deleteCategory } = useStore();
 
   const data = useMemo<Slice[]>(() => {
     const wantExpense = mode === "despesas";
@@ -67,6 +83,16 @@ export function DonutChart({
   };
 
   const toggleSlice = (id: string) => setSelected((prev) => (prev === id ? null : id));
+
+  const findCategory = (id: string) => categories.find((c) => c.id === id) ?? null;
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    deleteCategory(deleteTarget.id);
+    if (selected === deleteTarget.id) setSelected(null);
+    toast.success("Categoria excluída");
+    setDeleteTarget(null);
+  };
 
   const switchMode = (next: Mode) => {
     setMode(next);
@@ -192,6 +218,22 @@ export function DonutChart({
               >
                 {pct(selectedSlice.value)}
               </span>
+              <span className="flex shrink-0 items-center gap-1">
+                <button
+                  onClick={() => setEditTarget(findCategory(selectedSlice.categoryId))}
+                  title="Editar categoria"
+                  className="grid size-8 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <Pencil className="size-4" />
+                </button>
+                <button
+                  onClick={() => setDeleteTarget(findCategory(selectedSlice.categoryId))}
+                  title="Excluir categoria"
+                  className="grid size-8 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </span>
             </div>
           )}
 
@@ -230,6 +272,35 @@ export function DonutChart({
           </div>
         </>
       )}
+
+      <CategoryEditDialog
+        key={editTarget?.id ?? "none"}
+        open={Boolean(editTarget)}
+        onOpenChange={(v) => !v && setEditTarget(null)}
+        category={editTarget}
+      />
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir categoria?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A categoria{" "}
+              <span className="font-semibold text-foreground">{deleteTarget?.name ?? ""}</span> e
+              todos os seus lançamentos serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-2xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-2xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDelete}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

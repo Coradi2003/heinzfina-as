@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,12 +20,13 @@ import {
 } from "@/components/ui/select";
 import { CurrencyInput } from "./CurrencyInput";
 import { IconPicker, SelectedIcon, SelectedIconSmall } from "./IconPicker";
+import { CATEGORY_COLORS } from "@/lib/db";
 import { formatCents, formatDate, MONTHS, todayISO } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import type { Category, Entry, Scope } from "@/lib/types";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowUpRight, Minus, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { suggestIcon } from "@/lib/icons";
 
 interface BaseProps {
@@ -480,6 +481,78 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
   );
 }
 
+/* --------------------------- Editar categoria --------------------------- */
+
+export function CategoryEditDialog({
+  open,
+  onOpenChange,
+  category,
+}: BaseProps & { category: Category | null }) {
+  const { updateCategory } = useStore();
+  const [name, setName] = useState(category?.name ?? "");
+  const [color, setColor] = useState(category?.color ?? "#34d399");
+  const [icon, setIcon] = useState(category?.icon ?? "Tag");
+
+  const save = () => {
+    if (!category) return;
+    if (!name.trim()) {
+      toast.error("Informe o nome");
+      return;
+    }
+    updateCategory(category.id, { name: name.trim(), color, icon });
+    toast.success("Categoria atualizada");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>Editar categoria</DialogTitle>
+          <DialogDescription>
+            {category ? `${category.name} • ${category.id}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Field label="Nome">
+            <Input
+              className="h-12 rounded-2xl bg-secondary/60"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </Field>
+          <Field label="Cor">
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  aria-label={`Cor ${c}`}
+                  className={cn(
+                    "size-9 rounded-full transition-transform hover:scale-110",
+                    color === c && "ring-2 ring-foreground ring-offset-2 ring-offset-background",
+                  )}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </Field>
+          <Field label="Ícone">
+            <IconPicker value={icon} onChange={setIcon} name={name} />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button className="h-12 w-full rounded-2xl" onClick={save}>
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* --------------------------- Relatórios --------------------------- */
 
 export function ReportDialog({
@@ -802,6 +875,18 @@ function DetailStatus({ status }: { status: "Pago" | "Parcial" | "Em aberto" }) 
   );
 }
 
+export function PaidConfirmation({ detail }: { detail?: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-10 text-center">
+      <span className="grid size-16 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
+        <Check className="size-8" strokeWidth={3} />
+      </span>
+      <p className="font-display text-2xl font-bold tracking-tight">PAGO</p>
+      {detail && <p className="text-sm text-muted-foreground">{detail}</p>}
+    </div>
+  );
+}
+
 export function PartialPaymentDialog({
   open,
   onOpenChange,
@@ -809,38 +894,59 @@ export function PartialPaymentDialog({
 }: BaseProps & { entry: Entry | null }) {
   const { payPartial } = useStore();
   const [amount, setAmount] = useState(0);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setDone(false);
+      setAmount(0);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(() => onOpenChange(false), 1400);
+    return () => clearTimeout(t);
+  }, [done, onOpenChange]);
+
   if (!entry) return null;
   const remaining = entry.amount - entry.paid;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl">
-        <DialogHeader>
-          <DialogTitle>Pagamento parcial</DialogTitle>
-          <DialogDescription>
-            Restam {formatCents(remaining)} — vencimento {formatDate(entry.date)}
-          </DialogDescription>
-        </DialogHeader>
-        <Field label="Valor">
-          <CurrencyInput value={amount} onChange={setAmount} autoFocus />
-        </Field>
-        <DialogFooter>
-          <Button
-            variant="destructive"
-            className="h-12 w-full rounded-2xl"
-            onClick={() => {
-              if (!amount) {
-                toast.error("Informe o valor");
-                return;
-              }
-              payPartial(entry.id, amount);
-              toast.success("Pagamento registrado");
-              setAmount(0);
-              onOpenChange(false);
-            }}
-          >
-            Salvar
-          </Button>
-        </DialogFooter>
+        {done ? (
+          <PaidConfirmation detail={`${formatCents(amount)} aplicados neste lançamento.`} />
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Pagamento parcial</DialogTitle>
+              <DialogDescription>
+                Restam {formatCents(remaining)} — vencimento {formatDate(entry.date)}
+              </DialogDescription>
+            </DialogHeader>
+            <Field label="Valor">
+              <CurrencyInput value={amount} onChange={setAmount} autoFocus />
+            </Field>
+            <DialogFooter>
+              <Button
+                variant="destructive"
+                className="h-12 w-full rounded-2xl"
+                onClick={() => {
+                  if (!amount) {
+                    toast.error("Informe o valor");
+                    return;
+                  }
+                  payPartial(entry.id, amount);
+                  toast.success("Pagamento registrado");
+                  setDone(true);
+                }}
+              >
+                <Check className="size-4" /> Pagar
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -36,6 +36,7 @@ import {
   EditEntryDialog,
   ExpenseDialog,
   IncomeDialog,
+  PaidConfirmation,
   PartialPaymentDialog,
   ReportDialog,
   ReserveDepositDialog,
@@ -173,6 +174,8 @@ export function Dashboard() {
     entries: Entry[];
   } | null>(null);
   const [confirmPay, setConfirmPay] = useState<Entry[] | null>(null);
+  const [payDone, setPayDone] = useState(false);
+  const [payDoneTotal, setPayDoneTotal] = useState(0);
 
   const totals = useMemo(() => globalTotals(entries), [entries]);
   const empresa = useMemo(() => scopeTotals(entries, "empresa", month), [entries, month]);
@@ -675,28 +678,45 @@ export function Dashboard() {
         scope={detailGroup?.scope ?? "empresa"}
         entries={detailGroup?.entries ?? []}
       />
-      <AlertDialog open={Boolean(confirmPay)} onOpenChange={(v) => !v && setConfirmPay(null)}>
+      <AlertDialog
+        open={Boolean(confirmPay) || payDone}
+        onOpenChange={(v) => {
+          if (!v) {
+            setConfirmPay(null);
+            setPayDone(false);
+          }
+        }}
+      >
         <AlertDialogContent className="rounded-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar pagamento total?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmPay?.length} lançamento(s) serão marcados como pagos, no total de{" "}
-              {formatCents((confirmPay ?? []).reduce((a, e) => a + (e.amount - e.paid), 0))}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-2xl">Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-2xl"
-              onClick={() => {
-                store.payFull((confirmPay ?? []).map((e) => e.id));
-                setConfirmPay(null);
-                toast.success("Pagamento registrado");
-              }}
-            >
-              Confirmar
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          {payDone ? (
+            <PaidConfirmation detail={`${payDoneTotal} lançamento(s) marcados como pagos.`} />
+          ) : (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar pagamento total?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {confirmPay?.length} lançamento(s) serão marcados como pagos, no total de{" "}
+                  {formatCents((confirmPay ?? []).reduce((a, e) => a + (e.amount - e.paid), 0))}.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-2xl">Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="rounded-2xl"
+                  onClick={() => {
+                    const list = confirmPay ?? [];
+                    store.payFull(list.map((e) => e.id));
+                    setPayDoneTotal(list.length);
+                    setConfirmPay(null);
+                    setPayDone(true);
+                    toast.success("Pagamento registrado");
+                  }}
+                >
+                  Confirmar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
         </AlertDialogContent>
       </AlertDialog>
 
