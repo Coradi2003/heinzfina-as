@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,16 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import type { Category, Entry, Scope } from "@/lib/types";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowUpRight, Check, Minus, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Check,
+  ChevronDown,
+  Minus,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { suggestIcon } from "@/lib/icons";
 
 interface BaseProps {
@@ -690,6 +700,10 @@ export function DetailDialog({
   entries: Entry[];
   onEdit?: (entry: Entry) => void;
 }) {
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  useEffect(() => {
+    if (!open) setExpandedGroups([]);
+  }, [open]);
   const total = entries.reduce((acc, e) => acc + e.amount, 0);
   const paid = entries.reduce((acc, e) => acc + e.paid, 0);
   const pending = total - paid;
@@ -719,6 +733,18 @@ export function DetailDialog({
 
   const statusOf = (e: Entry): "Pago" | "Parcial" | "Em aberto" =>
     e.paid >= e.amount ? "Pago" : e.paid > 0 ? "Parcial" : "Em aberto";
+
+  const installmentGroups = new Map<string, Entry[]>();
+  const standaloneEntries: Entry[] = [];
+  for (const entry of entries) {
+    if (entry.installmentCount && entry.groupId) {
+      const group = installmentGroups.get(entry.groupId);
+      if (group) group.push(entry);
+      else installmentGroups.set(entry.groupId, [entry]);
+    } else {
+      standaloneEntries.push(entry);
+    }
+  }
 
   const EditButton = ({ entry }: { entry: Entry }) => (
     <button
@@ -769,16 +795,6 @@ export function DetailDialog({
           />
         </div>
 
-        {/* Cabeçalho da tabela (desktop) */}
-        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-border px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid">
-          <span>Data</span>
-          <span>Descrição</span>
-          <span>Vencimento</span>
-          <span className="text-right">Valor</span>
-          <span className="text-right">Status</span>
-          <span className="w-8" />
-        </div>
-
         {entries.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">
             Nenhum lançamento nesta categoria.
@@ -786,7 +802,118 @@ export function DetailDialog({
         )}
 
         <div className="space-y-2">
-          {entries.map((e) => {
+          {[...installmentGroups.entries()].map(([groupId, rawGroup]) => {
+            const groupEntries = [...rawGroup].sort(
+              (a, b) =>
+                (a.installmentIndex ?? 0) - (b.installmentIndex ?? 0) ||
+                a.date.localeCompare(b.date),
+            );
+            const first = groupEntries[0]!;
+            const installmentCount = first.installmentCount ?? groupEntries.length;
+            const groupTotal = groupEntries.reduce((acc, entry) => acc + entry.amount, 0);
+            const groupPaid = groupEntries.reduce((acc, entry) => acc + entry.paid, 0);
+            const groupPending = Math.max(0, groupTotal - groupPaid);
+            const paidCount = groupEntries.filter((entry) => entry.paid >= entry.amount).length;
+            const nextEntry = groupEntries.find((entry) => entry.paid < entry.amount);
+            const progress = installmentCount > 0 ? (paidCount / installmentCount) * 100 : 0;
+            const expanded = expandedGroups.includes(groupId);
+            const description = first.description || category?.name || "Compra parcelada";
+
+            return (
+              <div
+                key={groupId}
+                className="overflow-hidden rounded-2xl border border-border bg-secondary/40"
+              >
+                <div className="p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-display text-base font-semibold">{description}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {installmentCount}x de {formatCents(first.amount)}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                      {paidCount === installmentCount
+                        ? "Quitado"
+                        : `${paidCount}/${installmentCount}`}
+                    </span>
+                  </div>
+
+                  <div className="mt-4">
+                    <Progress value={progress} className="h-2 bg-border" />
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs">
+                      <span className="font-medium text-foreground">
+                        {paidCount} / {installmentCount} parcelas pagas
+                      </span>
+                      <span className="text-muted-foreground">
+                        {nextEntry
+                          ? `Próximo vencimento: ${formatDate(nextEntry.date)}`
+                          : "Todas as parcelas foram pagas"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <DetailSummary label="Pago" value={formatCents(groupPaid)} tone="positive" />
+                    <DetailSummary
+                      label="Pendente"
+                      value={formatCents(groupPending)}
+                      tone={groupPending > 0 ? "negative" : "positive"}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-expanded={expanded}
+                    onClick={() =>
+                      setExpandedGroups((current) =>
+                        current.includes(groupId)
+                          ? current.filter((id) => id !== groupId)
+                          : [...current, groupId],
+                      )
+                    }
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background/50 px-3 py-2.5 text-sm font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "size-4 transition-transform duration-200",
+                        expanded && "rotate-180",
+                      )}
+                    />
+                    {expanded ? "Ocultar parcelas" : "Ver parcelas"}
+                  </button>
+                </div>
+
+                {expanded && (
+                  <div className="border-t border-border bg-background/35 px-3 py-2 sm:px-4">
+                    {groupEntries.map((entry) => {
+                      const status = statusOf(entry);
+                      return (
+                        <div
+                          key={entry.id}
+                          className="flex items-center gap-3 border-b border-border/60 py-3 last:border-0"
+                        >
+                          <span className="w-12 shrink-0 text-sm font-semibold tabular-nums">
+                            {entry.installmentIndex}/{entry.installmentCount}
+                          </span>
+                          <span className="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm">
+                            {formatDate(entry.date)}
+                          </span>
+                          <span className="hidden text-sm font-medium tabular-nums sm:block">
+                            {formatCents(entry.amount)}
+                          </span>
+                          <DetailStatus status={status} />
+                          <EditButton entry={entry} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {standaloneEntries.map((e) => {
             const status = statusOf(e);
             return (
               <div
