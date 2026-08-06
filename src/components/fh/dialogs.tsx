@@ -585,12 +585,16 @@ export function EditEntryDialog({
           <Field label="Valor">
             <CurrencyInput
               value={draft.amount}
-              onChange={(v) => setDraft({ ...draft, amount: v })}
+              onChange={(v) =>
+                setDraft({ ...draft, amount: v, paid: draft.type === "income" ? v : draft.paid })
+              }
             />
           </Field>
-          <Field label="Valor já pago">
-            <CurrencyInput value={draft.paid} onChange={(v) => setDraft({ ...draft, paid: v })} />
-          </Field>
+          {draft.type !== "income" && (
+            <Field label="Valor já pago">
+              <CurrencyInput value={draft.paid} onChange={(v) => setDraft({ ...draft, paid: v })} />
+            </Field>
+          )}
           <Field label="Categoria">
             <CategorySelect
               value={draft.categoryId}

@@ -112,11 +112,13 @@ function Indicator({
   tone?: "positive" | "negative";
 }) {
   return (
-    <div className="rounded-2xl bg-secondary/50 px-3 py-3">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+    <div className="min-w-0 rounded-2xl bg-secondary/50 px-1.5 py-3 sm:px-3">
+      <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground sm:text-[11px]">
+        {label}
+      </p>
       <p
         className={cn(
-          "mt-1 font-display text-base font-semibold tabular-nums",
+          "mt-1 whitespace-nowrap font-display text-xs font-semibold tabular-nums sm:text-base",
           tone === "positive" && "text-primary",
           tone === "negative" && "text-destructive",
         )}
@@ -164,7 +166,7 @@ function RowMenu({ trigger, content }: { trigger: ReactNode; content: ReactNode 
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
-          className="flex items-center justify-end gap-2 sm:col-span-3 sm:grid sm:grid-cols-3"
+          className="col-span-2 flex items-center justify-end gap-2 sm:col-span-4 sm:grid sm:grid-cols-4"
           onPointerDown={(e) => e.preventDefault()}
           onDoubleClick={(e) => e.preventDefault()}
           onClick={() => {
@@ -218,9 +220,42 @@ export function Dashboard() {
   const empresa = useMemo(() => scopeTotals(entries, "empresa", month), [entries, month]);
   const pessoal = useMemo(() => scopeTotals(entries, "pessoal", month), [entries, month]);
 
+  const incomes = useMemo(() => {
+    return entries
+      .filter((e) => {
+        if (e.type !== "income") return false;
+        if (monthKey(e.date) !== month) return false;
+        if (scopeFilter.length && !scopeFilter.includes(e.scope)) return false;
+        if (catFilter.length && !catFilter.includes(e.categoryId)) return false;
+        return true;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [entries, month, scopeFilter, catFilter]);
+
   const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
   const catColor = (id: string) => categories.find((c) => c.id === id)?.color ?? "#34d399";
   const catIcon = (id: string) => categories.find((c) => c.id === id)?.icon;
+
+  const parcelCounts = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of entries) {
+      if (e.type !== "expense") continue;
+      const key = `${e.scope}|${e.categoryId}`;
+      if (e.installmentCount) {
+        map.set(key, `${e.installmentCount}x`);
+        continue;
+      }
+      if (e.fixed) {
+        if (!map.has(key) || map.get(key) === "—") {
+          const count = e.groupId ? entries.filter((x) => x.groupId === e.groupId).length : 1;
+          map.set(key, `${count}x`);
+        }
+        continue;
+      }
+      if (!map.has(key)) map.set(key, "—");
+    }
+    return map;
+  }, [entries]);
 
   const groups = useMemo(() => {
     const filtered = entries.filter((e) => {
@@ -543,12 +578,66 @@ export function Dashboard() {
         )}
       </section>
 
+      {/* Rendas */}
+      <section className="surface mt-4 overflow-hidden rounded-3xl">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="font-display text-sm font-bold">Rendas</h2>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {formatCents(incomes.reduce((a, e) => a + e.amount, 0))}
+          </span>
+        </div>
+        {incomes.length === 0 && (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+            Nenhuma renda neste mês.
+          </p>
+        )}
+        {incomes.map((e) => {
+          const cat = categories.find((c) => c.id === e.categoryId);
+          const color = cat?.color ?? "#34d399";
+          return (
+            <button
+              key={e.id}
+              onClick={() => {
+                setActiveEntry(e);
+                setDialog("edit");
+              }}
+              title="Tocar para editar"
+              className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border/60 px-4 py-3 text-left transition-colors last:border-0 hover:bg-secondary/40"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span
+                  className="grid size-9 shrink-0 place-items-center rounded-xl"
+                  style={{ backgroundColor: `${color}22`, color }}
+                >
+                  <SelectedIcon name={cat?.icon} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">
+                    {cat?.name ?? "Sem categoria"}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {e.description || (e.scope === "empresa" ? "Empresa" : "Pessoal")}
+                  </span>
+                </span>
+              </span>
+              <span className="text-right">
+                <span className="block font-display text-sm font-semibold tabular-nums text-primary">
+                  {formatCents(e.amount)}
+                </span>
+                <span className="block text-xs text-muted-foreground">{formatDate(e.date)}</span>
+              </span>
+            </button>
+          );
+        })}
+      </section>
+
       {/* Lista principal */}
       <section className="surface mt-4 overflow-hidden rounded-3xl">
-        <div className="grid grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
+        <div className="grid grid-cols-[minmax(0,1.4fr)_auto_auto] items-center gap-2 border-b border-border px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
           <span>Categoria</span>
           <span className="hidden sm:block">Vencimento</span>
           <span className="text-right">Parcela</span>
+          <span className="text-right">Nº</span>
           <span className="hidden text-right sm:block">Total</span>
         </div>
 
@@ -578,7 +667,7 @@ export function Dashboard() {
           return (
             <div
               key={g.key}
-              className="grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border/60 px-4 py-4 transition-colors last:border-0 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]"
+              className="grid w-full grid-cols-[minmax(0,1.4fr)_auto_auto] items-center gap-2 border-b border-border/60 px-4 py-4 transition-colors last:border-0 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]"
             >
               <button
                 onClick={openDetail}
@@ -608,6 +697,9 @@ export function Dashboard() {
                     </span>
                     <span className="text-right font-display text-sm font-semibold tabular-nums text-destructive">
                       {formatCents(g.parcelSum)}
+                    </span>
+                    <span className="text-right text-sm text-muted-foreground tabular-nums">
+                      {parcelCounts.get(g.key) ?? "—"}
                     </span>
                     <span className="hidden text-right text-sm text-destructive/70 tabular-nums sm:block">
                       {g.totalLabel}
