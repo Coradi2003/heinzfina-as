@@ -316,11 +316,12 @@ export function useStore() {
 
 /* ----------------------------- seletores ----------------------------- */
 
-export function globalTotals(entries: Entry[]) {
+export function globalTotals(entries: Entry[], month: string) {
   let income = 0;
   let outcome = 0;
   for (const e of entries) {
     if (e.fromReserve) continue;
+    if (monthKey(e.date) !== month) continue;
     if (e.type === "income") income += e.paid;
     else outcome += e.amount;
   }

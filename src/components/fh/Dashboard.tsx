@@ -214,7 +214,7 @@ export function Dashboard() {
   const [payDone, setPayDone] = useState(false);
   const [payDoneTotal, setPayDoneTotal] = useState(0);
 
-  const totals = useMemo(() => globalTotals(entries), [entries]);
+  const totals = useMemo(() => globalTotals(entries, month), [entries, month]);
   const empresa = useMemo(() => scopeTotals(entries, "empresa", month), [entries, month]);
   const pessoal = useMemo(() => scopeTotals(entries, "pessoal", month), [entries, month]);
 
@@ -575,17 +575,6 @@ export function Dashboard() {
             });
             setDialog("detail");
           };
-          const groupStatus = g.entries.every((e) => e.paid >= e.amount)
-            ? "PAGO"
-            : g.entries.some((e) => e.paid > 0 && e.paid < e.amount)
-              ? "PARCIAL"
-              : "EM ABERTO";
-          const statusColor =
-            groupStatus === "PAGO"
-              ? "bg-primary/15 text-primary"
-              : groupStatus === "PARCIAL"
-                ? "bg-warning/15 text-warning"
-                : "bg-destructive/15 text-destructive";
           return (
             <div
               key={g.key}
@@ -609,18 +598,6 @@ export function Dashboard() {
                   <span className="block truncate text-sm font-medium">
                     {catName(g.categoryId)}
                   </span>
-                  <span
-                    className={cn(
-                      "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                      statusColor,
-                    )}
-                  >
-                    {groupStatus}
-                  </span>
-                </span>
-                <span className="block min-w-0 truncate text-xs text-muted-foreground">
-                  {g.scope === "empresa" ? "Empresa" : "Pessoal"} • {g.entries.length} lanç. • venc.{" "}
-                  {formatDate(g.nextDue)}
                 </span>
               </button>
               <RowMenu
