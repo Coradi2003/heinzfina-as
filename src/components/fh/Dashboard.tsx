@@ -166,7 +166,7 @@ function RowMenu({ trigger, content }: { trigger: ReactNode; content: ReactNode 
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
-          className="flex items-center justify-end gap-2 sm:col-span-3 sm:grid sm:grid-cols-3"
+          className="flex items-center justify-end gap-2 sm:col-span-3 sm:grid sm:grid-cols-[minmax(0,1fr)_min-content_min-content]"
           onPointerDown={(e) => e.preventDefault()}
           onDoubleClick={(e) => e.preventDefault()}
           onClick={() => {
@@ -547,7 +547,7 @@ export function Dashboard() {
 
       {/* Lista principal */}
       <section className="surface mt-4 overflow-hidden rounded-3xl">
-        <div className="grid grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
+        <div className="grid grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid-cols-[minmax(0,1.6fr)_min-content_min-content_min-content]">
           <span>Categoria</span>
           <span className="hidden sm:block">Vencimento</span>
           <span className="text-right">Parcela</span>
@@ -580,7 +580,7 @@ export function Dashboard() {
           return (
             <div
               key={g.key}
-              className="grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border/60 px-4 py-4 transition-colors last:border-0 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]"
+              className="grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border/60 px-4 py-4 transition-colors last:border-0 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1.6fr)_min-content_min-content_min-content]"
             >
               <button
                 onClick={openDetail}

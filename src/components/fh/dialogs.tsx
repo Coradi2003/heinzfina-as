@@ -832,11 +832,13 @@ function DetailSummary({
   tone?: "positive" | "negative";
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-secondary/40 px-3 py-3">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+    <div className="min-w-0 rounded-2xl border border-border bg-secondary/40 px-2 py-3 sm:px-3">
+      <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground sm:text-[11px]">
+        {label}
+      </p>
       <p
         className={cn(
-          "mt-1 font-display text-base font-bold tabular-nums",
+          "mt-1 whitespace-nowrap font-display text-xs font-bold tabular-nums sm:text-base",
           tone === "positive" && "text-primary",
           tone === "negative" && "text-destructive",
         )}
