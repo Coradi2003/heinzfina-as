@@ -260,6 +260,7 @@ export function Dashboard() {
   const groups = useMemo(() => {
     const filtered = entries.filter((e) => {
       if (e.type !== "expense") return false;
+      if (e.hiddenFromList) return false;
       if (scopeFilter.length && !scopeFilter.includes(e.scope)) return false;
       if (statusFilter.length) {
         const paidOff = e.paid >= e.amount;
@@ -586,6 +587,7 @@ export function Dashboard() {
               entries: entries.filter(
                 (e) =>
                   e.type === "expense" &&
+                  !e.hiddenFromList &&
                   e.scope === g.scope &&
                   e.categoryId === g.categoryId &&
                   monthKey(e.date) === month,
