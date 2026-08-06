@@ -100,6 +100,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       description: input.description,
       paid: input.paidUpfront ? input.amount : 0,
       fromReserve: false,
+      paidUpfront: input.paidUpfront,
       createdAt: now,
     };
 
@@ -169,6 +170,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         totalAmount: null,
         groupId: null,
         fromReserve: false,
+        paidUpfront: false,
         createdAt: new Date().toISOString(),
       },
     ]);
@@ -257,6 +259,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           totalAmount: null,
           groupId: null,
           fromReserve: true,
+          paidUpfront: false,
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -321,7 +324,10 @@ export function globalTotals(entries: Entry[], month: string) {
     if (e.fromReserve) continue;
     if (monthKey(e.date) !== month) continue;
     if (e.type === "income") income += e.paid;
-    else outcome += e.amount;
+    else {
+      outcome += e.amount;
+      if (!e.paidUpfront) income += e.paid;
+    }
   }
   return { income, outcome, balance: income - outcome };
 }

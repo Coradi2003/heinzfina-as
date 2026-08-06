@@ -28,6 +28,7 @@ export interface Entry {
   totalAmount: number | null;
   groupId: string | null;
   fromReserve: boolean;
+  paidUpfront: boolean;
   createdAt: string;
 }
 

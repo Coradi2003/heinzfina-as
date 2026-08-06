@@ -21,6 +21,7 @@ create table if not exists public.entries (
   total_amount        bigint,
   group_id            text,
   from_reserve        boolean not null default false,
+  paid_upfront        boolean not null default false,
   created_at          text not null default now()::text
 );
 
