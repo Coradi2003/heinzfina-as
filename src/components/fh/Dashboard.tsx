@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -148,6 +148,43 @@ function FilterChip({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Menu da linha da tabela que só abre com duplo toque (evita abrir sem querer
+ * ao rolar a página). O primeiro toque apenas "prepara"; o segundo, em até
+ * 350ms, abre o menu.
+ */
+function RowMenu({ trigger, content }: { trigger: ReactNode; content: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const lastTap = useRef(0);
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="flex items-center justify-end gap-2 sm:col-span-3 sm:grid sm:grid-cols-3"
+          onPointerDown={(e) => e.preventDefault()}
+          onDoubleClick={(e) => e.preventDefault()}
+          onClick={() => {
+            const now = Date.now();
+            if (now - lastTap.current < 350) {
+              lastTap.current = 0;
+              setOpen(true);
+            } else {
+              lastTap.current = now;
+            }
+          }}
+          title="Duplo toque para abrir as opções"
+        >
+          {trigger}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 rounded-2xl">
+        {content}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -531,39 +568,57 @@ export function Dashboard() {
             setDetailGroup({ category: detailCategory, scope: g.scope, entries: g.entries });
             setDialog("detail");
           };
+          const groupStatus = g.entries.every((e) => e.paid >= e.amount)
+            ? "PAGO"
+            : g.entries.some((e) => e.paid > 0 && e.paid < e.amount)
+              ? "PARCIAL"
+              : "EM ABERTO";
+          const statusColor =
+            groupStatus === "PAGO"
+              ? "bg-primary/15 text-primary"
+              : groupStatus === "PARCIAL"
+                ? "bg-warning/15 text-warning"
+                : "bg-destructive/15 text-destructive";
           return (
-            <DropdownMenu key={g.key}>
-              <div className="grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border/60 px-4 py-4 transition-colors last:border-0 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
-                <button
-                  onClick={openDetail}
-                  title="Ver lançamentos da categoria"
-                  className="relative z-10 flex min-w-0 items-center gap-3 text-left"
+            <div
+              key={g.key}
+              className="grid w-full grid-cols-[minmax(0,1.4fr)_auto] items-center gap-2 border-b border-border/60 px-4 py-4 transition-colors last:border-0 hover:bg-secondary/40 sm:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]"
+            >
+              <button
+                onClick={openDetail}
+                title="Ver lançamentos da categoria"
+                className="relative z-10 flex min-w-0 items-center gap-3 text-left"
+              >
+                <span
+                  className="grid size-9 shrink-0 place-items-center rounded-xl"
+                  style={{
+                    backgroundColor: `${catColor(g.categoryId)}22`,
+                    color: catColor(g.categoryId),
+                  }}
                 >
+                  <SelectedIcon name={catIcon(g.categoryId)} />
+                </span>
+                <span className="min-w-0 flex items-center gap-2">
+                  <span className="block truncate text-sm font-medium">
+                    {catName(g.categoryId)}
+                  </span>
                   <span
-                    className="grid size-9 shrink-0 place-items-center rounded-xl"
-                    style={{
-                      backgroundColor: `${catColor(g.categoryId)}22`,
-                      color: catColor(g.categoryId),
-                    }}
+                    className={cn(
+                      "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      statusColor,
+                    )}
                   >
-                    <SelectedIcon name={catIcon(g.categoryId)} />
+                    {groupStatus}
                   </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">
-                      {catName(g.categoryId)}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {g.scope === "empresa" ? "Empresa" : "Pessoal"} • {g.entries.length} lanç. •
-                      venc. {formatDate(g.nextDue)}
-                    </span>
-                  </span>
-                </button>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    onDoubleClick={openDetail}
-                    title="Opções (duplo clique: detalhar)"
-                    className="flex items-center justify-end gap-2 sm:col-span-3 sm:grid sm:grid-cols-3"
-                  >
+                </span>
+                <span className="block min-w-0 truncate text-xs text-muted-foreground">
+                  {g.scope === "empresa" ? "Empresa" : "Pessoal"} • {g.entries.length} lanç. • venc.{" "}
+                  {formatDate(g.nextDue)}
+                </span>
+              </button>
+              <RowMenu
+                trigger={
+                  <>
                     <span className="hidden text-sm text-muted-foreground sm:block">
                       {formatDate(g.nextDue)}
                     </span>
@@ -573,47 +628,49 @@ export function Dashboard() {
                     <span className="hidden text-right text-sm text-destructive/70 tabular-nums sm:block">
                       {g.totalLabel}
                     </span>
-                  </button>
-                </DropdownMenuTrigger>
-              </div>
-              <DropdownMenuContent align="end" className="w-56 rounded-2xl">
-                <DropdownMenuLabel>{catName(g.categoryId)}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onSelect={() => {
-                    setActiveEntry(g.pending[0] ?? g.entries[0] ?? null);
-                    setDialog("edit");
-                  }}
-                >
-                  Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openDetail()}>Detalhar</DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => {
-                    const target = g.pending[0];
-                    if (!target) {
-                      toast.info("Não há parcelas em aberto");
-                      return;
-                    }
-                    setActiveEntry(target);
-                    setDialog("partial");
-                  }}
-                >
-                  Pagamento parcial
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => {
-                    if (g.pending.length === 0) {
-                      toast.info("Tudo já está pago");
-                      return;
-                    }
-                    setConfirmPay(g.pending);
-                  }}
-                >
-                  Pagamento total
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  </>
+                }
+                content={
+                  <>
+                    <DropdownMenuLabel>{catName(g.categoryId)}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setActiveEntry(g.pending[0] ?? g.entries[0] ?? null);
+                        setDialog("edit");
+                      }}
+                    >
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => openDetail()}>Detalhar</DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        const target = g.pending[0];
+                        if (!target) {
+                          toast.info("Não há parcelas em aberto");
+                          return;
+                        }
+                        setActiveEntry(target);
+                        setDialog("partial");
+                      }}
+                    >
+                      Pagamento parcial
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        if (g.pending.length === 0) {
+                          toast.info("Tudo já está pago");
+                          return;
+                        }
+                        setConfirmPay(g.pending);
+                      }}
+                    >
+                      Pagamento total
+                    </DropdownMenuItem>
+                  </>
+                }
+              />
+            </div>
           );
         })}
       </section>

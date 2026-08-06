@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { CurrencyInput } from "./CurrencyInput";
 import { IconPicker, SelectedIcon, SelectedIconSmall } from "./IconPicker";
-import { CATEGORY_COLORS } from "@/lib/db";
 import { formatCents, formatDate, MONTHS, todayISO } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
@@ -476,78 +475,6 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
             </div>
           ))}
         </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/* --------------------------- Editar categoria --------------------------- */
-
-export function CategoryEditDialog({
-  open,
-  onOpenChange,
-  category,
-}: BaseProps & { category: Category | null }) {
-  const { updateCategory } = useStore();
-  const [name, setName] = useState(category?.name ?? "");
-  const [color, setColor] = useState(category?.color ?? "#34d399");
-  const [icon, setIcon] = useState(category?.icon ?? "Tag");
-
-  const save = () => {
-    if (!category) return;
-    if (!name.trim()) {
-      toast.error("Informe o nome");
-      return;
-    }
-    updateCategory(category.id, { name: name.trim(), color, icon });
-    toast.success("Categoria atualizada");
-    onOpenChange(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-3xl">
-        <DialogHeader>
-          <DialogTitle>Editar categoria</DialogTitle>
-          <DialogDescription>
-            {category ? `${category.name} • ${category.id}` : ""}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <Field label="Nome">
-            <Input
-              className="h-12 rounded-2xl bg-secondary/60"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-          </Field>
-          <Field label="Cor">
-            <div className="flex flex-wrap gap-2">
-              {CATEGORY_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  aria-label={`Cor ${c}`}
-                  className={cn(
-                    "size-9 rounded-full transition-transform hover:scale-110",
-                    color === c && "ring-2 ring-foreground ring-offset-2 ring-offset-background",
-                  )}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-          </Field>
-          <Field label="Ícone">
-            <IconPicker value={icon} onChange={setIcon} name={name} />
-          </Field>
-        </div>
-        <DialogFooter>
-          <Button className="h-12 w-full rounded-2xl" onClick={save}>
-            Salvar
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
