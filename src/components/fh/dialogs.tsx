@@ -146,7 +146,7 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
   const [amount, setAmount] = useState(0);
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
-  const [installments, setInstallments] = useState(1);
+  const [installments, setInstallments] = useState<number | null>(null);
   const [fixed, setFixed] = useState(false);
   const [dueDate, setDueDate] = useState(todayISO());
 
@@ -160,20 +160,20 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
       categoryId,
       description,
       amount,
-      installments: fixed ? 1 : installments,
+      installments: fixed ? 1 : (installments ?? 1),
       fixed,
       dueDate,
     });
     toast.success(
       fixed
         ? "Despesa fixa criada para todos os meses do ano"
-        : installments > 1
+        : (installments ?? 1) > 1
           ? `${installments} parcelas criadas`
           : "Despesa cadastrada",
     );
     setAmount(0);
     setDescription("");
-    setInstallments(1);
+    setInstallments(null);
     setFixed(false);
     onOpenChange(false);
   };
@@ -212,13 +212,22 @@ export function ExpenseDialog({ open, onOpenChange, scope }: BaseProps & { scope
               min={1}
               max={120}
               disabled={fixed}
+              placeholder="Ex.: 12"
               className="h-12 rounded-2xl bg-secondary/60"
-              value={installments}
-              onChange={(e) => setInstallments(Math.max(1, Number(e.target.value) || 1))}
+              value={installments ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "") {
+                  setInstallments(null);
+                  return;
+                }
+                const n = Number(val);
+                setInstallments(Number.isFinite(n) && n > 0 ? Math.round(n) : null);
+              }}
             />
-            {!fixed && installments > 1 && amount > 0 && (
+            {!fixed && (installments ?? 1) > 1 && amount > 0 && (
               <p className="text-xs text-destructive">
-                {installments}x de {formatCents(Math.floor(amount / installments))}
+                {installments}x de {formatCents(Math.floor(amount / installments!))}
               </p>
             )}
           </Field>
