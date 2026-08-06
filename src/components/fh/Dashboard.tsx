@@ -239,6 +239,7 @@ export function Dashboard() {
 
     const map = new Map<string, Entry[]>();
     for (const e of filtered) {
+      if (monthKey(e.date) !== month) continue;
       const key = `${e.scope}|${e.categoryId}`;
       const list = map.get(key);
       if (list) list.push(e);
@@ -275,7 +276,7 @@ export function Dashboard() {
         };
       })
       .sort((a, b) => a.nextDue.localeCompare(b.nextDue));
-  }, [entries, scopeFilter, statusFilter, catFilter]);
+  }, [entries, scopeFilter, statusFilter, catFilter, month]);
 
   const toggle = <T,>(arr: T[], v: T, set: (x: T[]) => void) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -565,7 +566,13 @@ export function Dashboard() {
             icon: catIcon(g.categoryId) ?? "Tag",
           };
           const openDetail = () => {
-            setDetailGroup({ category: detailCategory, scope: g.scope, entries: g.entries });
+            setDetailGroup({
+              category: detailCategory,
+              scope: g.scope,
+              entries: entries.filter(
+                (e) => e.type === "expense" && e.scope === g.scope && e.categoryId === g.categoryId,
+              ),
+            });
             setDialog("detail");
           };
           const groupStatus = g.entries.every((e) => e.paid >= e.amount)
