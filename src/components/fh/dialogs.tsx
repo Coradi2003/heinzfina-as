@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,16 +25,7 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import type { Category, Entry, Scope } from "@/lib/types";
 import { toast } from "sonner";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Check,
-  ChevronDown,
-  Minus,
-  Pencil,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { suggestIcon } from "@/lib/icons";
 
 interface BaseProps {
@@ -741,23 +732,6 @@ export function DetailDialog({
     </button>
   );
 
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
-
-  const installmentGroups = useMemo(() => {
-    const map = new Map<string, Entry[]>();
-    for (const e of entries) {
-      if (!e.installmentCount || !e.groupId) continue;
-      const list = map.get(e.groupId);
-      if (list) list.push(e);
-      else map.set(e.groupId, [e]);
-    }
-    return [...map.values()]
-      .map((list) => list.sort((a, b) => (a.installmentIndex ?? 0) - (b.installmentIndex ?? 0)))
-      .sort((a, b) => (a[0]?.date ?? "").localeCompare(b[0]?.date ?? ""));
-  }, [entries]);
-
-  const plainEntries = entries.filter((e) => !e.installmentCount);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92dvh] overflow-y-auto rounded-3xl sm:max-w-2xl">
@@ -795,166 +769,63 @@ export function DetailDialog({
           />
         </div>
 
-        {/* Compras parceladas (card resumo + expansão) */}
-        {installmentGroups.length > 0 && (
-          <div className="space-y-2">
-            {installmentGroups.map((group) => {
-              const first = group[0]!;
-              const count = first.installmentCount ?? group.length;
-              const groupTotal = group.reduce((acc, e) => acc + e.amount, 0);
-              const groupPaid = group.reduce((acc, e) => acc + e.paid, 0);
-              const groupPending = groupTotal - groupPaid;
-              const firstUnpaid = group.find((e) => e.paid < e.amount);
-              const currentIndex = firstUnpaid?.installmentIndex ?? count;
-              const nextDue = firstUnpaid?.date ?? first.date;
-              const parcelValue = Math.floor(groupTotal / count);
-              const label = first.description || category?.name || "Compra parcelada";
-              const isOpen = expandedGroup === first.groupId;
-              return (
-                <div
-                  key={first.id}
-                  className="overflow-hidden rounded-2xl border border-border bg-secondary/40"
-                >
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{label}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {count}x de {formatCents(parcelValue)}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setExpandedGroup(isOpen ? null : first.groupId)}
-                        className="flex shrink-0 items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/70"
-                      >
-                        {isOpen ? "Recolher" : "Ver parcelas"}
-                        <ChevronDown
-                          className={cn(
-                            "size-3.5 transition-transform duration-200",
-                            isOpen && "rotate-180",
-                          )}
-                        />
-                      </button>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-4">
-                      <div>
-                        <p className="text-muted-foreground">Parcela atual</p>
-                        <p className="font-semibold tabular-nums">
-                          {currentIndex}/{count}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Próximo vencimento</p>
-                        <p className="font-semibold tabular-nums">{formatDate(nextDue)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Pago</p>
-                        <p className="font-semibold tabular-nums text-primary">
-                          {formatCents(groupPaid)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Pendente</p>
-                        <p className="font-semibold tabular-nums text-destructive">
-                          {formatCents(groupPending)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {isOpen && (
-                    <div className="border-t border-border px-4 py-2">
-                      {group.map((e) => (
-                        <div key={e.id} className="flex items-center justify-between gap-2 py-2">
-                          <span className="min-w-0 flex items-center gap-2 text-sm tabular-nums">
-                            <span className="font-medium">
-                              {e.installmentIndex}/{count}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(e.date)}
-                            </span>
-                          </span>
-                          <span className="flex shrink-0 items-center gap-2">
-                            <DetailStatus status={statusOf(e)} />
-                            <EditButton entry={e} />
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Outros lançamentos */}
-        {plainEntries.length > 0 && (
-          <>
-            <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-border px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid">
-              <span>Data</span>
-              <span>Descrição</span>
-              <span>Vencimento</span>
-              <span className="text-right">Valor</span>
-              <span className="text-right">Status</span>
-              <span className="w-8" />
-            </div>
-
-            <div className="space-y-2">
-              {plainEntries.map((e) => {
-                const status = statusOf(e);
-                return (
-                  <div
-                    key={e.id}
-                    className="rounded-2xl border border-border bg-secondary/40 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-3"
-                  >
-                    {/* Mobile */}
-                    <div className="sm:hidden">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-medium">{labelOf(e)}</span>
-                        <span className="flex items-center gap-2">
-                          <DetailStatus status={status} />
-                          <EditButton entry={e} />
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                        <span className="tabular-nums">{formatDate(e.date)}</span>
-                        <span className="font-display text-sm font-semibold tabular-nums text-foreground">
-                          {formatCents(e.amount)}
-                        </span>
-                      </div>
-                    </div>
-                    {/* Desktop */}
-                    <span className="hidden text-sm tabular-nums sm:block">
-                      {formatDate(e.date)}
-                    </span>
-                    <span className="hidden truncate text-sm sm:block">{labelOf(e)}</span>
-                    <span className="hidden text-sm tabular-nums sm:block">
-                      {formatDate(e.date)}
-                    </span>
-                    <span className="hidden text-right font-display text-sm font-semibold tabular-nums sm:block">
-                      {formatCents(e.amount)}
-                    </span>
-                    <span className="hidden justify-self-end sm:block">
-                      <DetailStatus status={status} />
-                    </span>
-                    <span className="hidden justify-self-end sm:block">
-                      <EditButton entry={e} />
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+        {/* Cabeçalho da tabela (desktop) */}
+        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-border px-4 py-2 text-[11px] uppercase tracking-wider text-muted-foreground sm:grid">
+          <span>Data</span>
+          <span>Descrição</span>
+          <span>Vencimento</span>
+          <span className="text-right">Valor</span>
+          <span className="text-right">Status</span>
+          <span className="w-8" />
+        </div>
 
         {entries.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">
             Nenhum lançamento nesta categoria.
           </p>
         )}
+
+        <div className="space-y-2">
+          {entries.map((e) => {
+            const status = statusOf(e);
+            return (
+              <div
+                key={e.id}
+                className="rounded-2xl border border-border bg-secondary/40 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-3"
+              >
+                {/* Mobile */}
+                <div className="sm:hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm font-medium">{labelOf(e)}</span>
+                    <span className="flex items-center gap-2">
+                      <DetailStatus status={status} />
+                      <EditButton entry={e} />
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span className="tabular-nums">{formatDate(e.date)}</span>
+                    <span className="font-display text-sm font-semibold tabular-nums text-foreground">
+                      {formatCents(e.amount)}
+                    </span>
+                  </div>
+                </div>
+                {/* Desktop */}
+                <span className="hidden text-sm tabular-nums sm:block">{formatDate(e.date)}</span>
+                <span className="hidden truncate text-sm sm:block">{labelOf(e)}</span>
+                <span className="hidden text-sm tabular-nums sm:block">{formatDate(e.date)}</span>
+                <span className="hidden text-right font-display text-sm font-semibold tabular-nums sm:block">
+                  {formatCents(e.amount)}
+                </span>
+                <span className="hidden justify-self-end sm:block">
+                  <DetailStatus status={status} />
+                </span>
+                <span className="hidden justify-self-end sm:block">
+                  <EditButton entry={e} />
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </DialogContent>
     </Dialog>
   );
