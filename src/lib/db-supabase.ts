@@ -40,7 +40,6 @@ interface EntryRow {
   group_id: string | null;
   from_reserve: boolean;
   paid_upfront: boolean;
-  hidden_from_list: boolean;
   created_at: string;
 }
 
@@ -72,7 +71,6 @@ const toEntry = (r: EntryRow): Entry => ({
   groupId: r.group_id,
   fromReserve: r.from_reserve,
   paidUpfront: r.paid_upfront ?? false,
-  hiddenFromList: r.hidden_from_list ?? false,
   createdAt: r.created_at,
 });
 
@@ -92,7 +90,6 @@ const toEntryRow = (e: Entry): EntryRow => ({
   group_id: e.groupId,
   from_reserve: e.fromReserve,
   paid_upfront: e.paidUpfront,
-  hidden_from_list: e.hiddenFromList,
   created_at: e.createdAt,
 });
 

@@ -107,7 +107,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       paid: input.paidUpfront ? input.amount : 0,
       fromReserve: false,
       paidUpfront: input.paidUpfront,
-      hiddenFromList: false,
       createdAt: now,
     };
 
@@ -178,7 +177,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         groupId: null,
         fromReserve: false,
         paidUpfront: false,
-        hiddenFromList: false,
         createdAt: new Date().toISOString(),
       },
     ]);
@@ -268,7 +266,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           groupId: null,
           fromReserve: true,
           paidUpfront: false,
-          hiddenFromList: false,
           createdAt: new Date().toISOString(),
         },
       ]);

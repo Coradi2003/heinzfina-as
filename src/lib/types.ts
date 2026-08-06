@@ -29,7 +29,6 @@ export interface Entry {
   groupId: string | null;
   fromReserve: boolean;
   paidUpfront: boolean;
-  hiddenFromList: boolean;
   createdAt: string;
 }
 

@@ -695,12 +695,6 @@ export function EditEntryDialog({
             variant="ghost"
             className="h-12 rounded-2xl text-destructive"
             onClick={() => {
-              if (draft.paidUpfront) {
-                updateEntry(draft.id, { hiddenFromList: true });
-                toast.success("Despesa removida da lista e mantida nas saídas");
-                onOpenChange(false);
-                return;
-              }
               const groupIds = draft.groupId
                 ? entries.filter((e) => e.groupId === draft.groupId).map((e) => e.id)
                 : [];
