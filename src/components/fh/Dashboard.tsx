@@ -409,18 +409,6 @@ export function Dashboard() {
           </div>
         </Bubble>
         <Bubble
-          label="Entradas"
-          value={formatCents(totals.income)}
-          tone="positive"
-          icon={<ArrowUpRight className="size-4" />}
-        />
-        <Bubble
-          label="Saídas"
-          value={formatCents(totals.outcome)}
-          tone="negative"
-          icon={<ArrowDownRight className="size-4" />}
-        />
-        <Bubble
           className="col-span-2"
           label="Reserva"
           value={formatCents(reserve)}
