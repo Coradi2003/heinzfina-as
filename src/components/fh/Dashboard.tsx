@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
   Building2,
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatCents, formatDate, MONTHS, monthKey } from "@/lib/money";
+import { formatCents, formatDate, MONTHS, monthKey, todayISO } from "@/lib/money";
 import { globalTotals, scopeTotals, useStore } from "@/lib/store";
 import { annualReportPdf, monthlyReportPdf } from "@/lib/pdf";
 import type { Category, Entry, Scope } from "@/lib/types";
@@ -220,6 +221,14 @@ export function Dashboard() {
   const empresa = useMemo(() => scopeTotals(entries, "empresa", month), [entries, month]);
   const pessoal = useMemo(() => scopeTotals(entries, "pessoal", month), [entries, month]);
 
+  const overdue = useMemo(() => {
+    const today = todayISO();
+    return entries.filter(
+      (e) => e.type === "expense" && !e.fromReserve && e.paid < e.amount && e.date < today,
+    );
+  }, [entries]);
+  const overdueTotal = overdue.reduce((acc, e) => acc + (e.amount - e.paid), 0);
+
   const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "Sem categoria";
   const catColor = (id: string) => categories.find((c) => c.id === id)?.color ?? "#34d399";
   const catIcon = (id: string) => categories.find((c) => c.id === id)?.icon;
@@ -389,6 +398,26 @@ export function Dashboard() {
           <span className="hidden sm:inline">Categorias</span>
         </Button>
       </header>
+
+      {/* Aviso de contas em atraso */}
+      {overdue.length > 0 && (
+        <section className="mt-5 rounded-3xl border border-destructive/30 bg-destructive/10 p-4">
+          <div className="flex items-start gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-destructive/15 text-destructive">
+              <AlertTriangle className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="font-display text-sm font-bold text-destructive">Contas em atraso</h2>
+              <p className="mt-0.5 text-xs text-destructive/90">
+                {overdue.length} conta(s) com vencimento passado e pagamento pendente.
+              </p>
+              <p className="mt-1 font-display text-sm font-semibold tabular-nums text-destructive">
+                Total em atraso: {formatCents(overdueTotal)}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Bolhas */}
       <section className="mt-5 grid grid-cols-2 gap-3">
