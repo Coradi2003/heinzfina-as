@@ -366,19 +366,16 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
   const { categories, addCategory, updateCategory, deleteCategory } = useStore();
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("Tag");
-  const [iconTouched, setIconTouched] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editIcon, setEditIcon] = useState("Tag");
 
-  const applyNameSuggestion = (raw: string) => {
-    setName(raw);
-    if (!iconTouched) setIcon(suggestIcon(raw));
-  };
-
-  const onPick = (i: string) => {
-    setIcon(i);
-    setIconTouched(true);
+  const submit = () => {
+    if (!name.trim()) return;
+    addCategory(name.trim(), icon);
+    toast.success("Categoria criada");
+    setName("");
+    setIcon("Tag");
   };
 
   return (
@@ -388,29 +385,39 @@ export function CategoriesDialog({ open, onOpenChange }: BaseProps) {
           <DialogTitle>Categorias</DialogTitle>
           <DialogDescription>Usadas em rendas, despesas, filtros e relatórios.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div className="flex gap-2">
-            <Input
-              className="h-12 rounded-2xl bg-secondary/60"
-              placeholder="Nova categoria"
-              value={name}
-              onChange={(e) => applyNameSuggestion(e.target.value)}
-            />
+            <div className="relative min-w-0 flex-1">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <SelectedIcon name={icon} />
+              </span>
+              <Input
+                autoFocus
+                className="h-12 rounded-2xl bg-secondary/60 pl-10 pr-4"
+                placeholder="Nova categoria"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setIcon(suggestIcon(e.target.value));
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submit();
+                }}
+              />
+            </div>
             <Button
+              type="button"
               size="icon"
+              aria-label="Adicionar categoria"
               className="size-12 shrink-0 rounded-2xl"
-              onClick={() => {
-                if (!name.trim()) return;
-                addCategory(name.trim(), icon);
-                setName("");
-                setIcon("Tag");
-                setIconTouched(false);
-              }}
+              onClick={submit}
             >
               <Plus />
             </Button>
           </div>
-          <IconPicker value={icon} onChange={onPick} name={name} />
+          <p className="px-1 text-xs text-muted-foreground">
+            O ícone é sugerido pelo nome. Para trocar depois, toque no lápis.
+          </p>
         </div>
         <div className="space-y-2">
           {categories.map((c) => (
