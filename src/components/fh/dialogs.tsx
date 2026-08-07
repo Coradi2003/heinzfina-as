@@ -983,12 +983,22 @@ export function DetailDialog({
                 {/* Mobile */}
                 <div className="sm:hidden">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium">{labelOf(e)}</span>
+                    <span className="min-w-0 truncate text-sm font-medium">
+                      {e.description ||
+                        (e.installmentCount
+                          ? `Parcela ${e.installmentIndex}/${e.installmentCount}`
+                          : "Lançamento")}
+                    </span>
                     <span className="flex items-center gap-2">
                       <DetailStatus status={status} />
                       <EditButton entry={e} />
                     </span>
                   </div>
+                  {e.installmentCount && e.description && (
+                    <p className="mt-1 text-xs font-semibold text-primary">
+                      Parcela {e.installmentIndex} de {e.installmentCount}
+                    </p>
+                  )}
                   <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span className="tabular-nums">{formatDate(e.date)}</span>
                     <span className="font-display text-sm font-semibold tabular-nums text-foreground">

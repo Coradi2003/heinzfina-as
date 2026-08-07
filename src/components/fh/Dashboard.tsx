@@ -260,7 +260,8 @@ export function Dashboard() {
   const catIcon = (id: string) => categories.find((c) => c.id === id)?.icon;
 
   const groups = useMemo(() => {
-    const showPaidValues = statusFilter.includes("pago") && !statusFilter.includes("apagar");
+    const showOnlyPaid = statusFilter.includes("pago") && !statusFilter.includes("apagar");
+    const showOnlyPending = statusFilter.includes("apagar") && !statusFilter.includes("pago");
     const filtered = entries.filter((e) => {
       if (e.type !== "expense") return false;
       if (scopeFilter.length && !scopeFilter.includes(e.scope)) return false;
@@ -288,10 +289,15 @@ export function Dashboard() {
         const sorted = [...list].sort((a, b) => a.date.localeCompare(b.date));
         const pending = sorted.filter((e) => e.paid < e.amount);
         const nextDue = (pending[0] ?? sorted[0])!.date;
-        const parcelSum = sorted.reduce(
-          (acc, e) => acc + (showPaidValues ? e.paid : Math.max(0, e.amount - e.paid)),
-          0,
-        );
+        const paidSum = sorted.reduce((acc, e) => acc + e.paid, 0);
+        const pendingSum = sorted.reduce((acc, e) => acc + Math.max(0, e.amount - e.paid), 0);
+        const parcelSum = showOnlyPaid
+          ? paidSum
+          : showOnlyPending
+            ? pendingSum
+            : pendingSum > 0
+              ? pendingSum
+              : paidSum;
         const hasInstallment = sorted.some((e) => e.installmentCount);
         const hasFixed = sorted.some((e) => e.fixed);
         const totalValue = hasInstallment
@@ -580,7 +586,9 @@ export function Dashboard() {
           <span className="text-right">
             {statusFilter.includes("pago") && !statusFilter.includes("apagar")
               ? "Pago"
-              : "Pendente"}
+              : statusFilter.includes("apagar") && !statusFilter.includes("pago")
+                ? "Pendente"
+                : "Valor"}
           </span>
           <span className="hidden text-right sm:block">Total</span>
         </div>
